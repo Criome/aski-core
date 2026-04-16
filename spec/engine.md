@@ -128,8 +128,10 @@ At root level:
 - `[| |]`  — Process
 
 In body context:
+- `()`     — Local type declaration
 - `[]`     — Block, InlineEval
-- `{}`     — Loop, StructConstruct
+- `{}`     — StructConstruct
+- `[| |]`  — Loop
 - `{| |}`  — Iteration
 - `(| |)`  — Match
 

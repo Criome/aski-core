@@ -3,12 +3,13 @@
 ## The Six Delimiter Pairs
 
 ```
-()      Paren
-[]      Bracket
-{}      Brace
-(| |)   ParenPipe
-{| |}   BracePipe
-[| |]   BracketPipe
+()      Paren           Solar     — identity, objects
+[]      Bracket         Lunar     — reflection, cycling
+{}      Brace           Saturnian — structure, boundary
+
+(| |)   ParenPipe       Solar     — match (pattern on identity)
+[| |]   BracketPipe     Lunar     — loop (cyclical)
+{| |}   BracePipe       Saturnian — iteration (structured traversal)
 ```
 
 ## Root.synth — Top Level
@@ -19,21 +20,21 @@
 {}      Struct
 {| |}   Const
 (| |)   FFI
-[| |]   Process
+[| |]   Process (entry point)
 (bare)  Newtype — PascalCase Type (undelimited)
 ```
 
-ALL SIX USED. Newtype is the only undelimited root construct.
+ALL SIX USED.
 
 
 ## Enum.synth — Inside (Enum ...)
 
 ```
 ()      data-carrying variant
-{}      struct variant
+{}      struct-form variant
 []      type application in variant payload
-(| |)   nested enum definition
-{| |}   nested struct definition
+(| |)   nested enum
+{| |}   nested struct
 [| |]   free
 ```
 
@@ -44,8 +45,8 @@ ALL SIX USED. Newtype is the only undelimited root construct.
 ()      typed field
 {}      (enclosing)
 []      type application in field type (via Type.synth)
-(| |)   nested enum definition
-{| |}   nested struct definition
+(| |)   nested enum
+{| |}   nested struct
 [| |]   free
 ```
 
@@ -106,12 +107,21 @@ $       dispatches to GenericParam.synth
 ## Statement.synth — Inside body
 
 ```
-{}      loop
+()      local type declaration: (Counter U32), (Names [Vec String])
+[| |]   loop
 {| |}   iteration
-()      arguments (via Expr → ExprPostfix)
-[]      inline eval (via Expr → ExprAtom)
-(| |)   match (via Expr → ExprAtom)
-[| |]   free
+^       early return (sigil)
+~@      mutation (sigil)
+@       instance (sigil)
+```
+
+Via Expr fallthrough:
+```
+[]      inline eval (ExprAtom)
+{}      struct construction (ExprAtom)
+(| |)   match (ExprAtom)
+[| |]   loop expression (ExprAtom)
+{| |}   iteration expression (ExprAtom)
 ```
 
 
@@ -119,21 +129,16 @@ $       dispatches to GenericParam.synth
 
 ```
 []      inline eval
-{}      loop expression
+{}      struct construction
+[| |]   loop expression
 {| |}   iteration expression
 (| |)   match expression
 ()      free
-[| |]   free
 ```
 
 
-## Instance.synth / Mutation.synth
+## Instance.synth
 
 ```
-()      expression
-[]      free
-{}      free
-{| |}   free
-(| |)   free
-[| |]   free
+()      optional type annotation: @Name (Type) Expr
 ```

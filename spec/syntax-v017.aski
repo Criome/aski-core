@@ -188,6 +188,39 @@ Items [Vec Item]
 
 
 ;; =============================================================
+;; STRUCT CONSTRUCTION — { StructName (Field Value) ... }
+;; =============================================================
+
+[geometry Point [
+  (offset :@Self @Delta Point Point [
+    {Point (Horizontal @Self.Horizontal + @Delta.Horizontal)
+           (Vertical @Self.Vertical + @Delta.Vertical)}
+  ])
+]]
+
+
+;; =============================================================
+;; LOCAL TYPE DECLARATIONS — (Name Type) in body
+;; =============================================================
+
+[transform Items [
+  (toNames :@Self [Vec String] [
+    (Names [Vec String])
+    @Names {| @Self.List.Item [@Item.Name] |}
+    @Names
+  ])
+]]
+
+;; one-liner form — type annotation inline
+[transform Items [
+  (toNames :@Self [Vec String] [
+    @Names ([Vec String]) {| @Self.List.Item [@Item.Name] |}
+    @Names
+  ])
+]]
+
+
+;; =============================================================
 ;; LOOPS — [| condition body |]
 ;; =============================================================
 
@@ -284,13 +317,11 @@ Items [Vec Item]
 
 
 ;; =============================================================
-;; .main FILES
+;; ITERATION AS EXPRESSION — {| source [body] |} in tail position
 ;; =============================================================
-;;
-;; hello.main:
-;;   [Elements Element Quality describe]
-;;   [Math Addition compute]
-;;   @MyElement Element/Fire
-;;   @Sum Addition/new(3 7)
-;;   StdOut @MyElement.describe
-;;   StdOut @Sum.add
+
+[transform Items [
+  (nameList :@Self [Vec String] [
+    {| @Self.List.Item [@Item.Name] |}
+  ])
+]]
