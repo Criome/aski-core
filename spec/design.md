@@ -8,16 +8,21 @@ must conform to all of them.
 ## Sema Is the Thing
 
 Sema is a universal typed binary format. It IS the thing.
+No strings. No unsized data. Domain variants as bytes.
 Everything else exists to serve sema.
+
+**Only semac produces sema.** Everything upstream (askicc,
+askic) produces rkyv-serialized data that still has strings.
+It becomes sema when semac resolves all strings to domain
+variants. If it has unsized data, it is not sema.
 
 Aski is one notation for specifying sema — a text-based,
 human-readable stepping stone. Aski will eventually be replaced
-by better ways to represent sema for human consumption. askic
-(the aski compiler) is a frontend that produces .sema binary.
+by better ways to represent sema for human consumption.
 
 semac (the sema compiler) is the permanent backend. It reads
-.sema binary and compiles it. Any tool that produces valid
-.sema can feed semac.
+rkyv data and produces sema + Rust. Any tool that produces
+valid rkyv parse trees can feed semac.
 
 The criome is the endgoal — the runtime that hosts sema worlds.
 
@@ -277,9 +282,47 @@ projection. .aski-table.sema is a name projection.
 
 The pipeline:
 ```
-.aski → askic → .sema → semac → .rs
+corec     — .aski → Rust with rkyv derives (the bootstrap tool)
+aski-core — grammar .aski + corec → Rust rkyv types (askicc↔askic contract)
+sema-core — parse tree .aski + corec → Rust rkyv types (askic↔semac contract)
+askicc    — uses aski-core types → rkyv dialect-data-tree (embedded in askic)
+askic     — uses aski-core (input) + sema-core (output), embeds askicc's rkyv
+semac     — uses sema-core types only, independent of aski
 ```
 
-askic is a frontend (aski → sema). semac is the backend
-(sema → Rust). They are independent. Multiple frontends
-can produce .sema.
+Six repos. Only corec and semac generate Rust.
+Only semac produces true sema. Everything between them is
+rkyv-serialized domain-data-trees.
+
+
+## The Two rkyv Contracts
+
+**aski-core** defines every type that appears in the rkyv message
+between askicc and askic. corec generates Rust with rkyv derives
+from the .aski definitions. Both askicc (serializer) and askic
+(deserializer) depend on corec's output from aski-core.
+
+**sema-core** defines every type that appears in the rkyv message
+between askic and semac. corec generates Rust with rkyv derives
+from sema-core's .aski definitions. askic (serializer) and semac
+(deserializer) depend on corec's output from sema-core. semac
+does NOT depend on aski-core.
+
+
+## No Generated Rust Outside corec and semac
+
+Only two places in the pipeline generate Rust source code:
+- **corec** — generates Rust with rkyv derives from .aski
+- **semac** — the permanent backend, turns sema into Rust
+
+askicc does NOT generate Rust. It produces rkyv data that
+gets embedded in the askic binary at build time.
+
+
+## No Free Functions
+
+All Rust in the sema ecosystem uses methods on types (traits
++ impls). No free functions. `main` is the only exception.
+
+All Rust will eventually be rewritten in aski, which uses
+methods (traits, impls). Free functions have no aski equivalent.

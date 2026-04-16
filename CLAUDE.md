@@ -7,36 +7,49 @@ is the endgoal.
 
 ## What Aski Is
 
-Sema is a fully-specified binary code — pure typed structure, no strings.
-At first it uses portable rkyv encoding. Sema IS the artifact.
+Sema is the universal typed binary format — no strings, no unsized
+data, domain variants as bytes. Only semac produces true sema.
 
-Aski is how you visualize sema. It projects sema's binary structure into
-readable, writable text. The sema engine reads aski and produces .sema
-(pure binary) + .aski-table.sema (name projection). Codegen and deparse
-are further projections from .sema into Rust or back to aski text.
+Aski is how you visualize sema. It projects sema's structure into
+readable, writable text. The pipeline reads aski and eventually
+produces sema (via semac) + Rust + .aski-table.sema (name projection).
 
 ## Design Principles
 
 - Sema is the source of truth — aski is a projection
-- Grammar rules ARE the compiler — 28 synth dialect files define parsing
+- Grammar rules ARE the compiler — 31 synth dialect files define parsing
 - No keywords — every symbol carries meaning
-- Six delimiters, context-dependent per dialect:
-  Root: () Module(first)/Domain/Trait [] TraitImpl {} Struct {||} Const (||) FFI [||] Process
-  Body: () Group [] Block {} StructConstruct {||} Loop (||) Match [||] EarlyReturn
+- Six delimiters, context-dependent per dialect
 - PascalCase = things (domains, types, modules), camelCase = actions (traits, methods)
 - No strings in sema — enum discriminants ARE the bytes
 - No newline significance in any aski-family language
+
+## The Pipeline
+
+```
+cc       — .aski → Rust types (bootstrap seed)
+askicc   — .synth → rkyv domain-data-tree (embedded in askic)
+askic    — reads rkyv data-tree → dialect state machine → rkyv parse tree
+semac    — reads rkyv → produces sema + Rust
+```
+
+Only cc and semac generate Rust. Only semac produces true sema.
+Everything between them is rkyv-serialized domain-data-trees.
+
+## Key Files
+
+- `spec/design.md` — established constraints
+- `spec/engine.md` — sema engine architecture
+- `spec/synth.md` — synth grammar language
+- `spec/compiler-outputs.md` — pipeline architecture
+- `spec/data-trees.md` — quasi-pure domain trees
+- `spec/syntax-v017.aski` — current language spec
+- `spec/delimiter-budget.md` — per-dialect allocation
 
 ## Aski Language Family
 
 Synth, nexus, and future dialects are all part of the aski family.
 Same principles: no newlines, delimiter-driven, position-derived.
-
-## Key Files
-
-- `spec/engine.md` — sema engine intent document
-- `spec/syntax.aski` — v0.16 language spec
-- `spec/dialect-tree.md` — 28 dialect hierarchy
 
 ## VCS
 

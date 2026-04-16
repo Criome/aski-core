@@ -1,15 +1,14 @@
 # The Sema Engine
 
 Sema is a universal typed binary format. It is the thing.
+No strings. No unsized data. Domain variants as bytes.
 Everything else exists to serve sema.
+
+**Only semac produces sema.** Everything upstream produces
+rkyv-serialized data. If it has unsized data, it is not sema.
 
 Aski is one text notation for specifying sema — a stepping
 stone that leverages existing text-based infrastructure.
-askic is the aski frontend. semac is the sema backend. They
-are independent.
-
-This document describes the aski frontend — the compiler
-pipeline that turns .aski source into .sema binary.
 
 
 ## The Stack
@@ -20,58 +19,102 @@ aski       — one text notation for specifying sema (a frontend)
 criome     — the runtime that hosts sema worlds (the endgoal)
 ```
 
-Sema is the center. Multiple frontends can produce .sema.
-Aski is the first frontend. The criome consumes .sema at
-runtime. semac compiles .sema to executable form.
 
-
-## askic — The Aski Frontend
-
-askic is a single self-contained binary. You give it .aski
-source files. It produces .sema binary.
-
-Internally, three layers — each a Rust crate, each built from
-the previous:
+## The Pipeline
 
 ```
-cc      (aski-core crate)  — .aski → Rust types (language anatomy)
-askicc  (askicc crate)     — uses cc + .synth → scoped types + dialect structures
-askic   (askic crate)      — uses askicc → parser, data-tree builder, .sema output
+corec     — .aski → Rust with rkyv derives (the bootstrap tool)
+aski-core — grammar .aski + corec → Rust rkyv types (askicc↔askic contract)
+sema-core — parse tree .aski + corec → Rust rkyv types (askic↔semac contract)
+askicc    — uses aski-core types → rkyv dialect-data-tree (embedded in askic)
+askic     — uses aski-core (input) + sema-core (output), embeds askicc's rkyv
+semac     — uses sema-core types only, independent of aski
 ```
 
-askic depends on askicc depends on cc. One binary contains
-all three.
+Six repos. They communicate through files.
+Only corec and semac generate Rust. Only semac produces true
+sema. Everything between them is rkyv domain-data-trees.
 
 
-## semac — The Sema Backend
+## The Two rkyv Contracts
 
-semac reads .sema binary and compiles it. Any tool that
-produces valid .sema can feed semac.
+**aski-core** defines every type that appears in the rkyv
+message between askicc and askic. corec generates Rust with
+rkyv derives from the .aski definitions. Both askicc
+(serializer) and askic (deserializer) depend on corec's output.
 
-semac produces:
-- Rust source (the current compilation target)
-- Name tables (.aski-table.sema — for tooling and display)
-- Future: criome runtime artifacts, other targets
+This includes classification types (NameDomain, ScopeKind),
+structure types (Span), and grammar types (Dialect, Rule,
+Item, DelimKind, Cardinality, DialectKind).
+
+**sema-core** defines every type that appears in the rkyv
+message between askic and semac. corec generates Rust with
+rkyv derives from the .aski definitions. askic (serializer)
+and semac (deserializer) depend on corec's output. semac does
+NOT depend on aski-core.
+
+This includes parse tree types — the structured output that
+askic produces from user .aski source.
 
 
-## cc — Core Compiler (aski-core crate)
+## corec — The Bootstrap Tool
 
-Reads aski-core's .aski anatomy files, emits Rust types.
-The minimal bootstrap: turns .aski into compilable Rust.
+A binary that reads .aski files and generates Rust types with
+rkyv derives. The bootstrap seed — one of only two tools that
+generate Rust. Used by both aski-core and sema-core.
 
 Hardcoded Rust parser. Replaced by the engine's own parser
 when self-hosted.
 
 
-## askicc — Bootstrap Compiler (askicc crate)
+## askicc — Bootstrap Compiler
 
-Uses cc's types. Reads .synth dialect files → structured
-grammar data. Reads askic's .aski source → scoped Rust types
-(enum-as-index architecture). Both are build-time inputs
-compiled into the askic binary.
+A binary that reads .synth dialect files, populates a
+domain-data-tree using aski-core's corec-generated types, and
+serializes it as rkyv. This rkyv data gets embedded in the
+askic binary at build time, giving askic the ability to read
+that version of aski's grammar.
 
-Makes askic elegant by front-loading type generation and
-grammar processing into generated code.
+**askicc does NOT generate Rust.** It produces rkyv data.
+The domain-data-tree IS the state machine that drives
+askic's parser.
+
+
+## askic — The Aski Frontend
+
+A binary that reads .aski source and produces an rkyv parse
+tree. askic contains NO language-specific parsing logic.
+It is a generic dialect engine.
+
+askicc's rkyv domain-data-tree is embedded in askic at build
+time. askic deserializes it using the same corec-generated
+aski-core types that askicc used to serialize it — aski-core
+is the input contract. askic serializes its parse tree output
+using sema-core types — the contract that semac reads. The
+engine executes the embedded grammar as a dialect-based state
+machine against the token stream.
+
+Adding new syntax = adding .aski definitions in aski-core +
+.synth files in askicc, then rebuilding. No askic code changes.
+
+askic's output is rkyv — it has strings (user names,
+literals). It is NOT sema.
+
+
+## semac — The Sema Backend
+
+A binary that reads rkyv parse trees using sema-core types
+and produces true sema + Rust source. Independent of askic
+and aski-core — depends only on sema-core.
+
+semac produces:
+- True sema binary (no strings, fixed-size)
+- Rust source (the current compilation target)
+- Name tables (.aski-table.sema — for tooling and display)
+
+This is where strings become domain variants. This is where
+unsized data becomes fixed-size. This is where rkyv becomes
+sema.
 
 
 ## The Dialect Tree
@@ -144,28 +187,6 @@ In definitions (recursive nesting):
 See delimiter-budget.md for the complete per-dialect allocation.
 
 
-## Node Architecture
-
-The data-tree uses typed nodes. Each synth rule that produces
-a parse node corresponds to one NodeKind variant. The variant
-IS the identity — not a string.
-
-Every syntactic nesting level creates a scope. Name resolution
-walks up from the current scope through ancestors. Recursive
-nesting via (| |) and {| |} creates arbitrarily deep scope
-chains.
-
-Nodes hold:
-- Kind — NodeKind enum (derived from synth)
-- Name — NameRef (which name classification + resolved scope)
-- Children — recursive node tree
-- Span — source position (start, end)
-- Value — optional literal value
-
-No strings. No i64 IDs. No parent pointers. No global counters.
-Direct tree structure.
-
-
 ## Research Foundations
 
 **Green/red trees (Roslyn):** Immutable green nodes, bottom-up,
@@ -187,12 +208,18 @@ by variants. This is what sema does.
 ## Principles
 
 - Sema is the thing. Aski is one way to specify it.
-- askic is a frontend. semac is the backend. They are independent.
-- Domains come from .aski data. Rust types are derived.
+- Only semac produces sema. Everything else is rkyv.
+- Six repos. Only corec and semac generate Rust.
+- askicc produces rkyv domain-data-trees, not Rust code.
+- askic is a generic dialect engine with no language knowledge.
+- askicc's rkyv data is embedded in askic at build time.
+- aski-core is the rkyv contract for askicc ↔ askic.
+- sema-core is the rkyv contract for askic ↔ semac.
+- semac depends only on sema-core, not aski-core.
+- Domains come from .aski data. Rust types are derived by corec.
 - DialectKind comes from .synth filenames.
 - No strings in sema. Domain variants ARE the bytes.
+- No free functions — methods on types. main is the exception.
 - No newline significance in any aski-family language.
-- .aski defines data, Rust implements behavior in the bootstrap.
-  Self-hosted: aski defines both, still targets Rust.
-- Each repo is its own crate, its own flake, its own stage.
+- Each repo is its own flake, its own stage.
 - The sema repo is the Nix authority. `nix flake check` is truth.
