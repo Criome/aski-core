@@ -94,13 +94,15 @@ $       dispatches to GenericParam.synth
 
 ## Method.synth — Inside (method ...)
 
+Any process delimiter is a valid method body:
+
 ```
-[]      body (block)
+[]      block body
 (| |)   match body
-[| |]   tail block
+[| |]   loop body
+{| |}   iteration body
+{}      struct construction body
 ()      free
-{}      free
-{| |}   free
 ```
 
 

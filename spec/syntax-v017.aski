@@ -188,14 +188,13 @@ Items [Vec Item]
 
 
 ;; =============================================================
-;; STRUCT CONSTRUCTION — { StructName (Field Value) ... }
+;; STRUCT CONSTRUCTION — direct method body
 ;; =============================================================
 
 [geometry Point [
-  (offset :@Self @Delta Point Point [
+  (offset :@Self @Delta Point Point
     {Point (Horizontal @Self.Horizontal + @Delta.Horizontal)
-           (Vertical @Self.Vertical + @Delta.Vertical)}
-  ])
+           (Vertical @Self.Vertical + @Delta.Vertical)})
 ]]
 
 
@@ -317,11 +316,9 @@ Items [Vec Item]
 
 
 ;; =============================================================
-;; ITERATION AS EXPRESSION — {| source [body] |} in tail position
+;; ITERATION AS METHOD BODY — direct, no wrapping []
 ;; =============================================================
 
 [transform Items [
-  (nameList :@Self [Vec String] [
-    {| @Self.List.Item [@Item.Name] |}
-  ])
+  (nameList :@Self [Vec String] {| @Self.List.Item [@Item.Name] |})
 ]]
