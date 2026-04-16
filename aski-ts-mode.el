@@ -74,9 +74,15 @@
      (match_body "|)" @font-lock-keyword-face)
      (match_expr "(|" @font-lock-keyword-face)
      (match_expr "|)" @font-lock-keyword-face)
+     ;; [| |] loop delimiters
+     (loop_stmt "[|" @font-lock-keyword-face)
+     (loop_stmt "|]" @font-lock-keyword-face)
      ;; {| |} iteration delimiters
      (iteration_stmt "{|" @font-lock-keyword-face)
      (iteration_stmt "|}" @font-lock-keyword-face)
+     ;; [| |] iteration body delimiters
+     (iteration_body "[|" @font-lock-keyword-face)
+     (iteration_body "|]" @font-lock-keyword-face)
      ;; or-pattern pipe
      (or_pattern "|" @font-lock-keyword-face)
      ;; FFI block delimiters
@@ -96,8 +102,11 @@
    :language 'aski
    :feature 'definition
    :override t
-   '(;; Module name
-     (module_decl name: (type_identifier) @font-lock-preprocessor-face)
+   '(;; Module name — use function-name-face to distinguish from exports
+     (module_decl name: (type_identifier) @font-lock-function-name-face)
+     ;; Module exports — type-face (they ARE types being exported)
+     (module_export (type_identifier) @font-lock-type-face)
+     (module_export (identifier) @font-lock-function-name-face)
      ;; Enum name
      (enum_decl name: (type_identifier) @font-lock-preprocessor-face)
      ;; Struct name
@@ -198,6 +207,7 @@
      ((parent-is "match_expr") parent-bol ,aski-ts-mode-indent-offset)
      ((parent-is "match_arm") parent-bol ,aski-ts-mode-indent-offset)
      ((parent-is "loop_stmt") parent-bol ,aski-ts-mode-indent-offset)
+     ((parent-is "iteration_body") parent-bol ,aski-ts-mode-indent-offset)
      ((parent-is "iteration_stmt") parent-bol ,aski-ts-mode-indent-offset)
      ((parent-is "trait_decl") parent-bol ,aski-ts-mode-indent-offset)
      ((parent-is "trait_impl") parent-bol ,aski-ts-mode-indent-offset)

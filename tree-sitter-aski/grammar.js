@@ -166,10 +166,13 @@ module.exports = grammar({
     module_decl: $ => seq(
       '(',
       field('name', $.type_identifier),
-      repeat(choice($.type_identifier, $.identifier)),
+      repeat($.module_export),
       repeat($.module_import),
       ')',
     ),
+
+    // Export: PascalCase type or camelCase trait
+    module_export: $ => choice($.type_identifier, $.identifier),
 
     // [ModuleName Import1 Import2]
     module_import: $ => seq(
@@ -438,12 +441,12 @@ module.exports = grammar({
       $._expr,
     )),
 
-    // { condition body } — loop
+    // [| condition body |] — loop
     loop_stmt: $ => seq(
-      '{',
+      '[|',
       $._expr,
       repeat1($._statement),
-      '}',
+      '|]',
     ),
 
     // {| source [body] |} — iteration

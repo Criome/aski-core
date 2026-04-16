@@ -19,8 +19,8 @@
 (match_body "(|" @indent.begin "|)" @indent.end)
 (match_expr "(|" @indent.begin "|)" @indent.end)
 
-;; Loop { ... }
-(loop_stmt "{" @indent.begin "}" @indent.end)
+;; Loop [| ... |]
+(loop_stmt "[|" @indent.begin "|]" @indent.end)
 
 ;; Iteration {| ... |}
 (iteration_stmt "{|" @indent.begin "|}" @indent.end)

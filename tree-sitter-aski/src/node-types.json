@@ -1467,11 +1467,26 @@
       "required": false,
       "types": [
         {
-          "type": "identifier",
+          "type": "module_export",
           "named": true
         },
         {
           "type": "module_import",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "module_export",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "identifier",
           "named": true
         },
         {

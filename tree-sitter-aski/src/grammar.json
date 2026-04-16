@@ -386,17 +386,8 @@
         {
           "type": "REPEAT",
           "content": {
-            "type": "CHOICE",
-            "members": [
-              {
-                "type": "SYMBOL",
-                "name": "type_identifier"
-              },
-              {
-                "type": "SYMBOL",
-                "name": "identifier"
-              }
-            ]
+            "type": "SYMBOL",
+            "name": "module_export"
           }
         },
         {
@@ -409,6 +400,19 @@
         {
           "type": "STRING",
           "value": ")"
+        }
+      ]
+    },
+    "module_export": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "type_identifier"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "identifier"
         }
       ]
     },
@@ -1287,7 +1291,7 @@
       "members": [
         {
           "type": "STRING",
-          "value": "{"
+          "value": "[|"
         },
         {
           "type": "SYMBOL",
@@ -1302,7 +1306,7 @@
         },
         {
           "type": "STRING",
-          "value": "}"
+          "value": "|]"
         }
       ]
     },

@@ -24,7 +24,8 @@
 ;;
 ;; Delimiters in body:
 ;;   []      Block, InlineEval, TypeApplication
-;;   {}      Loop, StructConstruct
+;;   {}      StructConstruct
+;;   [| |]   Loop
 ;;   {| |}   Iteration
 ;;   (| |)   Match
 ;;   ^       Early return (sigil)
@@ -187,17 +188,17 @@ Items [Vec Item]
 
 
 ;; =============================================================
-;; LOOPS — { condition body }
+;; LOOPS — [| condition body |]
 ;; =============================================================
 
 [parser TokenReader [
   (skipWhitespace ~@Self [
-    { @Self.atEnd == False
+    [| @Self.atEnd == False
       (| @Self.peek
         (Newline) @Self.advance
         (Space) @Self.advance
       |)
-    }
+    |]
   ])
 ]]
 
