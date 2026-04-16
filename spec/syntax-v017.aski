@@ -252,7 +252,7 @@ Items [Vec Item]
 ;; =============================================================
 
 [iterate Items [
-  (printAll :@Self {| @Self.List.Item [StdOut @Item.Name] |})
+  (printAll :@Self {| @Self.List.Item [StdOut/print(@Item.Name)] |})
 ]]
 
 
@@ -307,7 +307,7 @@ Items [Vec Item]
 
 [|
   @MyElement Element/Fire
-  StdOut @MyElement.describe
+  StdOut/print(@MyElement.describe)
 |]
 
 
