@@ -23,12 +23,12 @@
 ;;   (bare)  Newtype — PascalCase followed by Type
 ;;
 ;; Delimiters in body:
+;;   ()      Local type declaration
 ;;   []      Block, InlineEval, TypeApplication
 ;;   {}      StructConstruct
 ;;   [| |]   Loop
 ;;   {| |}   Iteration
 ;;   (| |)   Match
-;;   ^       Early return (sigil)
 ;;
 ;; Delimiters in definitions (recursive nesting):
 ;;   (| |)   Nested enum inside domain/struct
@@ -37,7 +37,7 @@
 ;;   []      Type application (everywhere)
 ;;
 ;; PascalCase = things (types, enums, variants, modules)
-;; camelCase  = actions (traits, methods, fields)
+;; camelCase  = actions (traits, methods)
 
 
 ;; =============================================================
@@ -181,7 +181,7 @@ Items [Vec Item]
   (demo :@Self [
     @R Radius/new(5.0)
     ~@Counter U32/new(0)
-    ~@Counter.set [@Counter + 1]
+    ~@Counter.set(@Counter + 1)
     @Counter
   ])
 ]]
@@ -224,14 +224,12 @@ Items [Vec Item]
 ;; =============================================================
 
 [parser TokenReader [
-  (skipWhitespace ~@Self [
-    [| @Self.atEnd == False
-      (| @Self.peek
-        (Newline) @Self.advance
-        (Space) @Self.advance
-      |)
-    |]
-  ])
+  (skipWhitespace ~@Self [| @Self.atEnd == False
+    (| @Self.peek
+      (Newline) @Self.advance
+      (Space) @Self.advance
+    |)
+  |])
 ]]
 
 
@@ -254,9 +252,7 @@ Items [Vec Item]
 ;; =============================================================
 
 [iterate Items [
-  (printAll :@Self [
-    {| @Self.List.Item [StdOut @Item.Name] |}
-  ])
+  (printAll :@Self {| @Self.List.Item [StdOut @Item.Name] |})
 ]]
 
 
