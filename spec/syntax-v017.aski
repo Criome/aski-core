@@ -1,0 +1,295 @@
+;; Aski v0.17 — positional dialects
+;;
+;; Position defines meaning. Synth IS the grammar.
+;; Dialects define positions. Six delimiter pairs.
+;;
+;; There are no variables. @ declares a type instance.
+;; @Counter U32/new(0) declares newtype Counter wrapping U32.
+;; PascalCase after @ always — it is a THING, not an action.
+;;
+;; Sigils:
+;;   @ = instance        : = borrow
+;;   ~ = mutable         $ = type parameter
+;;   ^ = early return     ? = try-unwrap (postfix)
+;;   & = trait combinator / = path (Type/Variant)
+;;
+;; At root:
+;;   ()      Module (first, required), Enum, TraitDecl
+;;   []      TraitImpl
+;;   {}      Struct
+;;   {| |}   Const
+;;   (| |)   FFI
+;;   [| |]   Process
+;;   (bare)  Newtype — PascalCase followed by Type
+;;
+;; Delimiters in body:
+;;   []      Block, InlineEval, TypeApplication
+;;   {}      Loop, StructConstruct
+;;   {| |}   Iteration
+;;   (| |)   Match
+;;   ^       Early return (sigil)
+;;
+;; Delimiters in definitions (recursive nesting):
+;;   (| |)   Nested enum inside domain/struct
+;;   {| |}   Nested struct inside domain/struct
+;;   ()      Typed field inside struct
+;;   []      Type application (everywhere)
+;;
+;; PascalCase = things (types, enums, variants, modules)
+;; camelCase  = actions (traits, methods, fields)
+
+
+;; =============================================================
+;; MODULE
+;; =============================================================
+
+(Elements Element Quality describe [Core ParseState Token])
+
+
+;; =============================================================
+;; ENUMS
+;; =============================================================
+
+(Element Fire Earth Air Water)
+(Modality Cardinal Fixed Mutable)
+(Quality Passionate Grounded Intellectual Intuitive)
+
+;; data-carrying variants
+(Shape (Circle F64) {Rectangle (Width F64) (Height F64)} (Triangle F64))
+(Option (Some $Value) None)
+(Result (Ok $Output) (Err $Failure))
+
+;; nested enum inside enum
+(Token
+  (Ident String)
+  (Number I64)
+  (| Delimiter LParen RParen LBracket RBracket LBrace RBrace |)
+  Newline)
+
+;; type application in variant payload
+(ParseResult
+  (Success [Vec Node])
+  (Failure String))
+
+
+;; =============================================================
+;; NEWTYPES — undelimited, PascalCase followed by Type
+;; =============================================================
+
+Counter U32
+Meters F64
+Items [Vec Item]
+
+
+;; =============================================================
+;; STRUCTS
+;; =============================================================
+
+{Point (Horizontal F64) (Vertical F64)}
+{Addition (Left U32) (Right U32)}
+
+;; nested struct inside struct
+{Drawing
+  (Shapes [Vec Shape])
+  Name
+  {| Config (Timeout U32) (Retries U32) |}}
+
+;; nested enum inside struct
+{Engine
+  (| State Ready Active Done |)
+  (Current State)}
+
+
+;; =============================================================
+;; CONSTANTS
+;; =============================================================
+
+{| MaxSigns U32 12 |}
+{| Pi F64 3.14159265358979 |}
+
+
+;; =============================================================
+;; TRAIT DECLARATIONS
+;; =============================================================
+
+(describe [(describe :@Self Quality)])
+
+(compute [(add :@Self U32) (multiply :@Self @Factor U32 U32)])
+
+
+;; =============================================================
+;; TRAIT IMPLEMENTATIONS
+;; =============================================================
+
+;; match body
+[describe Element [
+  (describe :@Self Quality (|
+    (Fire) Passionate
+    (Earth) Grounded
+    (Air) Intellectual
+    (Water) Intuitive
+  |))
+]]
+
+;; block body with tail return
+[compute Addition [
+  (add :@Self U32 [
+    @Self.Left + @Self.Right
+  ])
+]]
+
+;; multi-param
+[compute Addition [
+  (multiply :@Self @Factor U32 U32 [
+    @Self.Left * @Factor + @Self.Right * @Factor
+  ])
+]]
+
+;; or-patterns
+[categorize Element [
+  (polarity :@Self Polarity (|
+    (Fire | Air) Active
+    (Earth | Water) Receptive
+  |))
+]]
+
+;; data destructuring
+[classify Token [
+  (classify :@Self Category (|
+    (Ident @Name) Name
+    (Number @N) Literal
+    (Newline) Whitespace
+  |))
+]]
+
+;; string patterns in match
+[dispatch Node [
+  (lower :@Self (|
+    ("(") @Self.lowerParen
+    ("[") @Self.lowerBracket
+    ("{") @Self.lowerBrace
+  |))
+]]
+
+
+;; =============================================================
+;; BLOCK BODIES — type instances, mutation
+;; =============================================================
+
+[bindings Radius [
+  (demo :@Self [
+    @R Radius/new(5.0)
+    ~@Counter U32/new(0)
+    ~@Counter.set [@Counter + 1]
+    @Counter
+  ])
+]]
+
+
+;; =============================================================
+;; LOOPS — { condition body }
+;; =============================================================
+
+[parser TokenReader [
+  (skipWhitespace ~@Self [
+    { @Self.atEnd == False
+      (| @Self.peek
+        (Newline) @Self.advance
+        (Space) @Self.advance
+      |)
+    }
+  ])
+]]
+
+
+;; =============================================================
+;; EARLY RETURN — ^expr
+;; =============================================================
+
+[lookup Table [
+  (find :@Self @Key String [Option String] [
+    (| @Self.containsKey(@Key)
+      (False) ^Option/None
+    |)
+    Option/Some(@Self.get(@Key))
+  ])
+]]
+
+
+;; =============================================================
+;; ITERATION — {| source [body] |}
+;; =============================================================
+
+[iterate Items [
+  (printAll :@Self [
+    {| @Self.List.Item [StdOut @Item.Name] |}
+  ])
+]]
+
+
+;; =============================================================
+;; FFI
+;; =============================================================
+
+(| Lexer
+  (lex @Source String [Vec Token])
+|)
+
+(| FileSystem
+  (readToString @Path String String)
+  (writeString @Path String @Content String)
+|)
+
+
+;; =============================================================
+;; GENERICS
+;; =============================================================
+
+;; parameterized enum
+(Option (Some $Value) None)
+(Result (Ok $Output) (Err $Failure))
+
+;; struct with applied type
+{Container (Items [Vec Item]) (Count U32)}
+
+;; type application in signature
+(process [(transform :@Self @Items @[Vec $Value] @[Vec $Value])])
+
+;; bounded type params
+(serialize [(toBytes :@Self @Data $Clone&Debug [Vec U8])])
+
+
+;; =============================================================
+;; ERROR PROPAGATION — ? postfix
+;; =============================================================
+
+[compiler Compiler [
+  (compileRust ~@Self @Files [Vec String] String [
+    @Result @Self.compileFiles(@Files)?
+    @Ctx CodegenContext/new(@Result.Sema @Result.Names)
+    @Ctx.codegen
+  ])
+]]
+
+
+;; =============================================================
+;; PROCESS — [| ... |] inline executable
+;; =============================================================
+
+[|
+  @MyElement Element/Fire
+  StdOut @MyElement.describe
+|]
+
+
+;; =============================================================
+;; .main FILES
+;; =============================================================
+;;
+;; hello.main:
+;;   [Elements Element Quality describe]
+;;   [Math Addition compute]
+;;   @MyElement Element/Fire
+;;   @Sum Addition/new(3 7)
+;;   StdOut @MyElement.describe
+;;   StdOut @Sum.add
