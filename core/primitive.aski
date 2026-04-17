@@ -1,0 +1,7 @@
+;; primitive.aski — built-in types known to the aski language
+;;
+;; These exist without being declared in any module.
+
+(Primitives Primitive)
+
+{Primitive (Name String) (Arity U32)}
