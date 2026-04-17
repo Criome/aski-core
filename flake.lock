@@ -16,11 +16,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1776428315,
-        "narHash": "sha256-fX1x3wxVhfz6HUSl2CdHodi4dGxbd7LOt3ISeqgsPhU=",
+        "lastModified": 1776449112,
+        "narHash": "sha256-9WUlQcavvQiwT+rwEE8OsTMcf6Bl7iXIBsDmad7PN+I=",
         "owner": "LiGoldragon",
         "repo": "corec",
-        "rev": "09dfbde1de2c50ebfb002fca38931491923b0243",
+        "rev": "46eb256d1ab3caaf347937a3baf4b316f5d1f48e",
         "type": "github"
       },
       "original": {

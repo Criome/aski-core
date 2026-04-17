@@ -1,5 +1,5 @@
 {
-  description = "aski — rkyv contract types for askic↔semac";
+  description = "aski-core — rkyv contract types for askic↔veric↔semac (parse tree)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -31,10 +31,10 @@
           src = ./.;
           filter = path: type:
             (craneLib.filterCargoSources path type)
-            || (builtins.match ".*\\.aski$" path != null);
+            || (builtins.match ".*\\.core$" path != null);
         };
 
-        generated = pkgs.runCommand "aski-generated" {
+        generated = pkgs.runCommand "aski-core-generated" {
           nativeBuildInputs = [ corec-bin ];
         } ''
           mkdir -p generated
@@ -43,7 +43,7 @@
           cp generated/aski.rs $out/
         '';
 
-        aski-source = pkgs.runCommand "aski-source" {} ''
+        aski-core-source = pkgs.runCommand "aski-core-source" {} ''
           cp -r ${src} $out
           chmod -R +w $out
           mkdir -p $out/generated
@@ -51,27 +51,27 @@
         '';
 
         commonArgs = {
-          src = aski-source;
-          pname = "aski";
+          src = aski-core-source;
+          pname = "aski-core";
           version = "0.17.0";
         };
 
         cargoArtifacts = craneLib.buildDepsOnly commonArgs;
 
-        aski-lib = craneLib.buildPackage (commonArgs // {
+        aski-core-lib = craneLib.buildPackage (commonArgs // {
           inherit cargoArtifacts;
         });
 
       in {
         packages = {
-          default = aski-source;
-          source = aski-source;
-          lib = aski-lib;
+          default = aski-core-source;
+          source = aski-core-source;
+          lib = aski-core-lib;
           inherit generated;
         };
 
         checks = {
-          lib-build = aski-lib;
+          lib-build = aski-core-lib;
         };
 
         devShells.default = craneLib.devShell {
