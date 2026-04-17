@@ -1,0 +1,16 @@
+[package]
+name = "aski"
+version = "0.17.0"
+edition = "2021"
+authors = ["Li Goldragon <li@goldragon.criome.net>"]
+description = "aski — rkyv contract types for askic↔semac"
+
+[lib]
+name = "aski"
+path = "src/lib.rs"
+
+[dependencies]
+rkyv = { version = "0.8", default-features = false, features = [
+    "little_endian",
+    "alloc",
+] }

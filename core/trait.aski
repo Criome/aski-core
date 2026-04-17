@@ -1,0 +1,48 @@
+;; trait.aski — trait declaration and implementation domains
+
+(Trait TraitDeclDef TraitImplDef AssociatedTypeDef AssociatedTypeImpl
+       MethodSig MethodDef)
+
+
+{AssociatedTypeDef
+  (Name TypeName)
+  (Bounds [Vec TraitBound])
+  (Default [Option TypeExpr])}
+
+{AssociatedTypeImpl
+  (Name TypeName)
+  (Type TypeExpr)}
+
+{MethodSig
+  (Name MethodName)
+  (GenericParams [Vec GenericParamDef])
+  (Params [Vec Param])
+  (ReturnType [Option TypeExpr])
+  Span}
+
+{MethodDef
+  (Name MethodName)
+  (GenericParams [Vec GenericParamDef])
+  (Params [Vec Param])
+  (ReturnType [Option TypeExpr])
+  (Body MethodBody)
+  Span}
+
+
+{TraitDeclDef
+  (Name TraitName)
+  (Visibility Visibility)
+  (GenericParams [Vec GenericParamDef])
+  (SuperTraits [Vec TraitBound])
+  (AssociatedTypes [Vec AssociatedTypeDef])
+  (Signatures [Vec MethodSig])
+  Span}
+
+{TraitImplDef
+  (Trait TraitName)
+  (TraitArgs [Vec TypeExpr])
+  (Type TypeExpr)
+  (GenericParams [Vec GenericParamDef])
+  (Methods [Vec MethodDef])
+  (AssociatedTypes [Vec AssociatedTypeImpl])
+  Span}

@@ -1,82 +1,81 @@
 {
-  description = "aski — delimiter-typed language, synth-driven compiler";
+  description = "aski — rkyv contract types for askic↔semac";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     fenix = {
       url = "github:nix-community/fenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     crane.url = "github:ipetkov/crane";
-
-    aski-core-src = { url = "github:LiGoldragon/aski-core"; flake = false; };
-
-    # Bootstrap compiler — askic-bootstrap branch
-    aski-rs-bootstrap-src = {
-      url = "github:LiGoldragon/aski-rs/askic-bootstrap";
-      flake = false;
+    flake-utils.url = "github:numtide/flake-utils";
+    corec = {
+      url = "github:LiGoldragon/corec";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.fenix.follows = "fenix";
+      inputs.crane.follows = "crane";
+      inputs.flake-utils.follows = "flake-utils";
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, fenix, crane, aski-core-src, aski-rs-bootstrap-src }:
+  outputs = { self, nixpkgs, fenix, crane, flake-utils, corec, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
         toolchain = fenix.packages.${system}.stable.toolchain;
         craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
 
-        bootstrapSrc = pkgs.lib.cleanSourceWith {
-          src = aski-rs-bootstrap-src;
+        corec-bin = corec.packages.${system}.corec;
+
+        src = pkgs.lib.cleanSourceWith {
+          src = ./.;
           filter = path: type:
-            (craneLib.filterCargoSources path type) ||
-            (builtins.match ".*\\.aski$" path != null) ||
-            (builtins.match ".*\\.synth$" path != null);
+            (craneLib.filterCargoSources path type)
+            || (builtins.match ".*\\.aski$" path != null);
         };
 
-        bootstrap-commonArgs = {
-          pname = "askic";
-          version = "0.15.0";
-          src = bootstrapSrc;
+        generated = pkgs.runCommand "aski-generated" {
+          nativeBuildInputs = [ corec-bin ];
+        } ''
+          mkdir -p generated
+          corec ${./core} generated/aski.rs
+          mkdir -p $out
+          cp generated/aski.rs $out/
+        '';
+
+        aski-source = pkgs.runCommand "aski-source" {} ''
+          cp -r ${src} $out
+          chmod -R +w $out
+          mkdir -p $out/generated
+          cp ${generated}/aski.rs $out/generated/
+        '';
+
+        commonArgs = {
+          src = aski-source;
+          pname = "aski";
+          version = "0.17.0";
         };
 
-        cargoArtifacts = craneLib.buildDepsOnly bootstrap-commonArgs;
+        cargoArtifacts = craneLib.buildDepsOnly commonArgs;
 
-        askic = craneLib.buildPackage (bootstrap-commonArgs // {
+        aski-lib = craneLib.buildPackage (commonArgs // {
           inherit cargoArtifacts;
         });
 
-        synth-dir = "${aski-core-src}/source";
-
-        # ── Roundtrip test ─────────────────────────────
-        roundtrip-test = import "${aski-rs-bootstrap-src}/tests/roundtrip.nix" {
-          inherit pkgs aski-core-src;
-          askic = askic;
-          rustc = toolchain;
-        };
-
-        editor = import ./nix/editor.nix { inherit pkgs; };
-
       in {
         packages = {
-          default = askic;
-          inherit askic;
-          inherit (editor) tree-sitter-aski tree-sitter-aski-wasm aski-mode aski-ts-mode;
+          default = aski-source;
+          source = aski-source;
+          lib = aski-lib;
+          inherit generated;
         };
 
         checks = {
-          # Unit tests pass
-          askic-tests = craneLib.cargoTest (bootstrap-commonArgs // {
-            inherit cargoArtifacts;
-          });
-
-          # Generated Rust compiles with rustc
-          roundtrip = roundtrip-test;
+          lib-build = aski-lib;
         };
 
         devShells.default = craneLib.devShell {
-          checks = self.checks.${system};
-          packages = with pkgs; [ rust-analyzer ];
+          packages = [ corec-bin pkgs.rust-analyzer ];
         };
       }
     );

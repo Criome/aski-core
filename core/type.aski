@@ -1,0 +1,43 @@
+;; type.aski — type expression domains
+;;
+;; Every position where a type can appear in Rust.
+;; Each variant maps to exactly one Rust codegen pattern.
+;;
+;; Leaf types first (Rust declaration order).
+
+(Type TypeExpr TypeApplication TraitBound GenericParamDef)
+
+
+{TypeApplication
+  (Constructor TypeName)
+  (Args [Vec TypeExpr])}
+
+{TraitBound
+  (Trait TraitName)
+  (Args [Vec TypeExpr])}
+
+{GenericParamDef
+  (Name TypeParamName)
+  (Bounds [Vec TraitBound])
+  (Default [Option TypeExpr])}
+
+
+(TypeExpr
+  (Named TypeName)
+  SelfType
+  (Application TypeApplication)
+  (Param TypeParamName)
+  {BoundedParam (Bounds [Vec TypeName])}
+  {Ref (Inner [Box TypeExpr])}
+  {MutRef (Inner [Box TypeExpr])}
+  (Boxed [Box TypeExpr])
+  {Tuple (Elements [Vec TypeExpr])}
+  Unit
+  {Array (Element [Box TypeExpr]) (Size U64)}
+  {Slice (Element [Box TypeExpr])}
+  {FnPtr (Params [Vec TypeExpr]) (Return [Box TypeExpr])}
+  Never
+  {DynTrait (Bounds [Vec TraitBound])}
+  {ImplTrait (Bounds [Vec TraitBound])}
+  (InstanceRef TypeApplication)
+  {QualifiedPath (Base [Box TypeExpr]) (Segment TypeName)})

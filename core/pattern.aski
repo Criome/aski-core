@@ -1,0 +1,44 @@
+;; pattern.aski — match pattern and match expression domains
+;;
+;; Every Rust pattern form has its own variant.
+;; Each variant emits exactly one Rust pattern.
+
+(Pattern MatchExpr MatchArm Pattern PatternField LiteralValue)
+
+
+(LiteralValue
+  (Int I64)
+  (Float F64)
+  (Str String)
+  (Bool Bool)
+  (Char U32))
+
+{PatternField
+  (Name FieldName)
+  (Pattern [Option Pattern])}
+
+{MatchArm
+  (Pattern Pattern)
+  (Guard [Option [Box Expr]])
+  (Result [Box Expr])}
+
+{MatchExpr
+  (Target [Option [Box Expr]])
+  (Arms [Vec MatchArm])}
+
+
+(Pattern
+  Wildcard
+  {IdentBind (Name TypeName) (Mutable Bool) Span}
+  {LitPattern (Value LiteralValue) Span}
+  {VariantPattern (Type [Option TypeName]) (Variant VariantName) Span}
+  {VariantDataPattern (Type [Option TypeName]) (Variant VariantName)
+                      (Inner [Vec Pattern]) Span}
+  {VariantStructPattern (Type [Option TypeName]) (Variant VariantName)
+                        (Fields [Vec PatternField]) Span}
+  {TuplePattern (Elements [Vec Pattern]) Span}
+  {StructPattern (Type TypeName) (Fields [Vec PatternField]) Span}
+  {OrPattern (Alternatives [Vec Pattern]) Span}
+  (StringLitPattern String)
+  {RefPattern (Inner [Box Pattern]) Span}
+  Rest)

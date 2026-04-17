@@ -1,0 +1,117 @@
+;; root.aski — top-level domain tree
+;;
+;; What can appear at the root of an .aski file.
+
+(Root RootChild ModuleDef ExportItem ImportItem ModuleImport
+      Visibility DeriveAttr
+      EnumDef EnumChild StructDef StructChild StructField
+      NewtypeDef ConstDef FfiDef FfiFunction)
+
+
+;; ── Leaf enums ──────────────────────────────────────────────────
+
+(Visibility Public Private)
+
+(DeriveAttr
+  Debug Clone Copy PartialEq Eq PartialOrd Ord Hash Default
+  RkyvArchive RkyvSerialize RkyvDeserialize)
+
+(ExportItem
+  (Type TypeName)
+  (Trait TraitName))
+
+(ImportItem
+  (Type TypeName)
+  (Trait TraitName))
+
+
+;; ── Structs (leaf-ish) ──────────────────────────────────────────
+
+{ModuleImport
+  (Source TypeName)
+  (Names [Vec ImportItem])}
+
+{StructField
+  (Name FieldName)
+  (Visibility Visibility)
+  (Type TypeExpr)
+  Span}
+
+{FfiFunction
+  (Name MethodName)
+  (Params [Vec Param])
+  (ReturnType [Option TypeExpr])
+  Span}
+
+{ConstDef
+  (Name TypeName)
+  (Visibility Visibility)
+  (Type TypeExpr)
+  (Value LiteralValue)
+  Span}
+
+{FfiDef
+  (Library TypeName)
+  (Functions [Vec FfiFunction])
+  Span}
+
+{NewtypeDef
+  (Name TypeName)
+  (Visibility Visibility)
+  (GenericParams [Vec GenericParamDef])
+  (Derives [Vec DeriveAttr])
+  (Wraps TypeExpr)
+  Span}
+
+
+;; ── Recursive types ─────────────────────────────────────────────
+
+(StructChild
+  {TypedField (Name FieldName) (Visibility Visibility) (Type TypeExpr) Span}
+  {SelfTypedField (Name FieldName) (Visibility Visibility) Span}
+  (NestedEnum EnumDef)
+  (NestedStruct StructDef))
+
+(EnumChild
+  {Variant (Name VariantName) Span}
+  {DataVariant (Name VariantName) (Payload TypeExpr) Span}
+  {StructVariant (Name VariantName) (Fields [Vec StructField]) Span}
+  (NestedEnum EnumDef)
+  (NestedStruct StructDef))
+
+{StructDef
+  (Name TypeName)
+  (Visibility Visibility)
+  (GenericParams [Vec GenericParamDef])
+  (Derives [Vec DeriveAttr])
+  (Children [Vec StructChild])
+  Span}
+
+{EnumDef
+  (Name TypeName)
+  (Visibility Visibility)
+  (GenericParams [Vec GenericParamDef])
+  (Derives [Vec DeriveAttr])
+  (Children [Vec EnumChild])
+  Span}
+
+{ModuleDef
+  (Name TypeName)
+  (Visibility Visibility)
+  (Exports [Vec ExportItem])
+  (Imports [Vec ModuleImport])
+  Span}
+
+
+;; ── Root ────────────────────────────────────────────────────────
+
+(RootChild
+  (Module ModuleDef)
+  (Enum EnumDef)
+  (Struct StructDef)
+  (Newtype NewtypeDef)
+  (TraitDecl TraitDeclDef)
+  (TraitImpl TraitImplDef)
+  (Const ConstDef)
+  (Ffi FfiDef)
+  (Process Block))

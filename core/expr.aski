@@ -1,0 +1,84 @@
+;; expr.aski — expression domains
+;;
+;; Every kind of Rust expression. Each variant maps to
+;; exactly one Rust codegen pattern.
+
+(Expr Expr FieldInit)
+
+
+{FieldInit
+  (Name FieldName)
+  (Value [Box Expr])}
+
+
+(Expr
+  ;; literals
+  {IntLit (Value I64) Span}
+  {FloatLit (Value F64) Span}
+  {StringLit (Value String) Span}
+  {BoolLit (Value Bool) Span}
+  {CharLit (Value U32) Span}
+  UnitLit
+
+  ;; binary — arithmetic
+  {BinAdd (Left [Box Expr]) (Right [Box Expr]) Span}
+  {BinSub (Left [Box Expr]) (Right [Box Expr]) Span}
+  {BinMul (Left [Box Expr]) (Right [Box Expr]) Span}
+  {BinDiv (Left [Box Expr]) (Right [Box Expr]) Span}
+  {BinMod (Left [Box Expr]) (Right [Box Expr]) Span}
+
+  ;; binary — comparison
+  {BinEq (Left [Box Expr]) (Right [Box Expr]) Span}
+  {BinNotEq (Left [Box Expr]) (Right [Box Expr]) Span}
+  {BinLt (Left [Box Expr]) (Right [Box Expr]) Span}
+  {BinGt (Left [Box Expr]) (Right [Box Expr]) Span}
+  {BinLtEq (Left [Box Expr]) (Right [Box Expr]) Span}
+  {BinGtEq (Left [Box Expr]) (Right [Box Expr]) Span}
+
+  ;; binary — logical
+  {BinAnd (Left [Box Expr]) (Right [Box Expr]) Span}
+  {BinOr (Left [Box Expr]) (Right [Box Expr]) Span}
+
+  ;; unary
+  {UnaryNeg (Inner [Box Expr]) Span}
+  {UnaryNot (Inner [Box Expr]) Span}
+  {UnaryDeref (Inner [Box Expr]) Span}
+  {UnaryBorrow (Inner [Box Expr]) Span}
+  {UnaryBorrowMut (Inner [Box Expr]) Span}
+
+  ;; access
+  {FieldAccess (Object [Box Expr]) (Field FieldName) Span}
+  {MethodCall (Object [Box Expr]) (Method MethodName) (Args [Vec Expr]) Span}
+  {TryUnwrap (Inner [Box Expr]) Span}
+
+  ;; calls
+  {PathCall (Type TypeName) (Method MethodName) (Args [Vec Expr]) Span}
+
+  ;; path expressions
+  {InstanceRef (Name TypeName) Span}
+  {SelfRef Span}
+  {BareVariant (Variant VariantName) Span}
+  {PathVariant (Type TypeName) (Variant VariantName) Span}
+  {PathVariantData (Type TypeName) (Variant VariantName) (Payload [Box Expr]) Span}
+
+  ;; construction
+  {StructConstruct (Type TypeName) (Fields [Vec FieldInit]) Span}
+  {TupleExpr (Elements [Vec Expr]) Span}
+  {ArrayExpr (Elements [Vec Expr]) Span}
+
+  ;; block
+  (InlineEval Block)
+
+  ;; control flow as expressions
+  (Match MatchExpr)
+  (Loop LoopExpr)
+  (Iteration Iteration)
+
+  ;; return/break
+  (EarlyReturn [Box Expr])
+  ReturnUnit
+  (Break [Option [Box Expr]])
+  Continue
+
+  ;; cast
+  {CastExpr (Inner [Box Expr]) (Target TypeExpr) Span})

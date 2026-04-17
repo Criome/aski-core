@@ -1,0 +1,24 @@
+;; body.aski — body, block, method body, and parameter domains
+
+(Body Block MethodBody Param)
+
+
+{Block
+  (Statements [Vec Statement])
+  (Tail [Option [Box Expr]])}
+
+(MethodBody
+  (Block Block)
+  (Match MatchExpr)
+  (Loop LoopExpr)
+  (Iteration Iteration)
+  {StructConstruct (Type TypeName) (Fields [Vec FieldInit]) Span})
+
+(Param
+  BorrowSelf
+  MutBorrowSelf
+  OwnedSelf
+  {BorrowNamed (Name TypeName) (Type TypeExpr)}
+  {MutBorrowNamed (Name TypeName) (Type TypeExpr)}
+  {Named (Name TypeName) (Type TypeExpr)}
+  {Bare (Name TypeName)})

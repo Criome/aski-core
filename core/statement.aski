@@ -1,0 +1,45 @@
+;; statement.aski — statement domains
+
+(Statement Statement LetBinding Instance Mutation LoopExpr Iteration)
+
+
+{LetBinding
+  (Pattern Pattern)
+  (Mutable Bool)
+  (TypeAnnotation [Option TypeExpr])
+  (Value [Box Expr])
+  Span}
+
+{Instance
+  (Name TypeName)
+  (TypeAnnotation [Option TypeExpr])
+  (Value [Box Expr])
+  Span}
+
+{Mutation
+  (Name TypeName)
+  (Method MethodName)
+  (Args [Vec Expr])
+  Span}
+
+{LoopExpr
+  (Condition [Option [Box Expr]])
+  (Body Block)}
+
+{Iteration
+  (Binding Pattern)
+  (Source [Box Expr])
+  (Body Block)}
+
+
+(Statement
+  (Let LetBinding)
+  (Expr [Box Expr])
+  (EarlyReturn [Box Expr])
+  ReturnUnit
+  (Loop LoopExpr)
+  {While (Condition [Box Expr]) (Body Block) Span}
+  (Iteration Iteration)
+  {LocalTypeDecl (Name TypeName) (Type TypeExpr) Span}
+  (Mutation Mutation)
+  (Instance Instance))
