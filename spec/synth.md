@@ -185,6 +185,26 @@ or more). For each top-level construct after the module,
 try each alternative until one matches.
 
 
+## Synth Rules Are Flat
+
+Text is a left-to-right, top-to-bottom medium. Synth rules
+are flat because text is flat. A synth rule is a sequence of
+items matched in source order — there is no hierarchical
+grouping syntax in synth itself.
+
+Trees come from the builder, not the grammar. The engine
+walks a flat synth rule against a flat token stream. The
+builder takes the flat match result and constructs a typed
+tree (enums, structs, nested definitions). Root.synth is
+flat — module first, then repeated alternatives — because
+that is how a human writes a module in text. The builder
+restructures this into a ModuleDef that contains its
+definitions.
+
+Do not attempt to make synth rules hierarchical. The flat
+rule IS correct. Structure lives in the builder.
+
+
 ## Synth Does NOT Handle
 
 - **Grouping for repetition** — `()` in synth always means
