@@ -215,6 +215,24 @@ declaration is not an assignment — it is the creation of a
 thing. Things don't get replaced; new things are created.
 
 
+## Text Is Flat, Trees Come From the Compiler
+
+Text is a left-to-right, top-to-bottom medium. Every
+text-based language — aski, synth, or anything else — is
+written as a flat sequence of tokens. An aski file lists
+definitions one after another. A synth file lists rules one
+after another. This is not a limitation to work around. It
+is the nature of text.
+
+Trees are what the compiler constructs from the flat input.
+The builder takes a flat sequence of matched tokens and
+produces a structured domain tree (modules containing enums,
+structs, traits). The grammar rules stay flat because the
+source text is flat. Do not attempt to make grammars
+hierarchical — structure lives in the compiler, not the
+grammar.
+
+
 ## Data-Tree IS the Parser State
 
 Synth files define patterns — what tokens to match. Nothing
