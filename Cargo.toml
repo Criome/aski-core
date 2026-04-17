@@ -1,12 +1,12 @@
 [package]
-name = "aski"
+name = "aski-core"
 version = "0.17.0"
 edition = "2021"
 authors = ["Li Goldragon <li@goldragon.criome.net>"]
-description = "aski — rkyv contract types for askic↔semac"
+description = "aski-core — rkyv contract types for askic↔veric↔semac (parse tree types)"
 
 [lib]
-name = "aski"
+name = "aski_core"
 path = "src/lib.rs"
 
 [dependencies]
