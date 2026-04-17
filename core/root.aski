@@ -1,8 +1,9 @@
 ;; root.aski — top-level domain tree
 ;;
-;; What can appear at the root of an .aski file.
+;; ModuleDef is the root type. One .aski file = one module.
+;; RootChild is gone — ModuleDef IS the container.
 
-(Root RootChild ModuleDef ExportItem ImportItem ModuleImport
+(Root ModuleDef ExportItem ImportItem ModuleImport
       Visibility DeriveAttr
       EnumDef EnumChild StructDef StructChild StructField
       NewtypeDef ConstDef FfiDef FfiFunction)
@@ -95,23 +96,20 @@
   (Children [Vec EnumChild])
   Span}
 
+
+;; ── ModuleDef — the root container ──────────────────────────────
+
 {ModuleDef
   (Name TypeName)
   (Visibility Visibility)
   (Exports [Vec ExportItem])
   (Imports [Vec ModuleImport])
+  (Enums [Vec EnumDef])
+  (Structs [Vec StructDef])
+  (Newtypes [Vec NewtypeDef])
+  (Consts [Vec ConstDef])
+  (TraitDecls [Vec TraitDeclDef])
+  (TraitImpls [Vec TraitImplDef])
+  (Ffi [Vec FfiDef])
+  (Process [Option Block])
   Span}
-
-
-;; ── Root ────────────────────────────────────────────────────────
-
-(RootChild
-  (Module ModuleDef)
-  (Enum EnumDef)
-  (Struct StructDef)
-  (Newtype NewtypeDef)
-  (TraitDecl TraitDeclDef)
-  (TraitImpl TraitImplDef)
-  (Const ConstDef)
-  (Ffi FfiDef)
-  (Process Block))

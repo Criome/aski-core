@@ -13,19 +13,28 @@ it has unsized data, it is not sema.
 ## The Pipeline
 
 ```
-corec       — .aski → Rust with rkyv derives (bootstrap tool + library)
+corec       — .aski → Rust with rkyv derives (bootstrap tool)
 aski-core   — grammar .aski + corec → Rust rkyv types (askicc↔askic contract)
-aski        — parse tree .aski + corec → Rust rkyv types (askic↔semac contract)
+aski        — parse tree .aski + corec → Rust rkyv types (askic↔veric↔semac contract)
 askicc      — uses aski-core types → rkyv dialect-data-tree (embedded in askic)
-askic       — uses aski-core (input) + aski (output), embeds askicc's rkyv
-domainc     — rkyv parse tree → Rust domain crate (per-program semac↔rsc contract)
-semac       — rkyv parse tree + domain crate → .sema (pure binary, no strings)
-rsc         — .sema + domain crate → .rs (Rust source)
-askid       — .sema + domain crate + name table → .aski (canonical text)
+askic       — .aski source → per-module .rkyv (ModuleDef, structured)
+veric       — per-module .rkyv → program.rkyv (verified, linked)
+domainc     — program.rkyv → domain types (proc macro, compile-time)
+semac       — program.rkyv + domain types → .sema (pure binary, no strings)
+rsc         — .sema + domain types → .rs (Rust source)
+askid       — .sema + domain types + name table → .aski (canonical text)
 ```
 
 Each stage is a nix derivation depending on the previous.
 Each binary has one defined input and one defined output.
+
+askic compiles each .aski file independently to a per-module
+.rkyv containing a structured ModuleDef. veric reads all
+per-module .rkyv files, verifies cross-module references
+(imports, exports, type existence), and produces a single
+program.rkyv containing Vec<ModuleDef>. domainc is a proc
+macro that reads program.rkyv at compile time and generates
+domain types — no intermediate source files.
 
 
 ## The Naming IS the Architecture
@@ -56,15 +65,15 @@ aski (.aski) ──corec──→ Rust types with rkyv derives
                               │
                   ┌───────────┴───────────┐
                   ▼                       ▼
-               askic                   semac
-            (serializes)           (deserializes)
+               askic                veric / semac
+            (serializes)         (deserializes)
 
-<program> (.aski) ──domainc──→ Rust types with rkyv derives
-                                      │
-                          ┌───────────┴───────────┐
-                          ▼                       ▼
-                       semac                   rsc/askid
-                    (serializes)           (deserializes)
+<program>.rkyv ──domainc proc macro──→ Rust types with rkyv derives
+                                              │
+                                  ┌───────────┴───────────┐
+                                  ▼                       ▼
+                               semac                   rsc/askid
+                            (serializes)           (deserializes)
 ```
 
 aski-core defines grammar types: Dialect, Rule, Item, Label,
@@ -85,12 +94,7 @@ between a serializer and a deserializer.
 
 Reads .aski domain definitions, emits Rust with rkyv derives.
 Zero dependencies. Used by both aski-core and aski to generate
-their contract types. Also used to generate per-program domain
-types (the enum-as-index architecture).
-
-corec is also a library: domainc reuses its codegen logic
-(emit_enum, emit_struct, emit_derives, map_primitive,
-needs_omit_bounds). No codegen duplication.
+their contract types.
 
 
 ## askicc — The Grammar Compiler
@@ -108,31 +112,62 @@ generate Rust. askicc produces rkyv data.
 
 A generic dialect engine with NO language-specific parsing
 logic. The embedded rkyv dialect data IS the state machine.
-Reads .aski source, produces rkyv parse tree using aski types.
+Reads one .aski source file, produces one per-module .rkyv
+containing a structured ModuleDef.
 
 Three layers:
 - Lexer — tokenizes .aski source
 - Engine — walks dialect data, matches tokens, produces ParseValues
-- Builders — per-dialect constructors, converts ParseValues to aski types
+- Builder — restructures flat parse into ModuleDef container
+
+Text is flat; the tree comes from the builder. Root.synth
+is a flat sequence of alternatives. The builder populates
+ModuleDef fields (enums, structs, newtypes, consts, etc.)
+from the flat parse result.
 
 askic's output is rkyv, NOT sema — it has strings (user
-names, literals). It becomes sema only when semac processes it.
+names, literals). It becomes sema only when semac processes
+it. Each per-module .rkyv is independently cacheable and
+parallelizable by nix.
 
 
-## domainc — The Domain Compiler
+## veric — The Aski Verifier
 
-Reads askic's rkyv parse tree. Extracts ALL domain definitions
-(enums, structs, newtypes, consts, scope indices). Generates a
-Rust crate with rkyv derives — the per-program sema types.
+Reads per-module .rkyv files produced by askic. Verifies
+cross-module structural correctness. Produces a single
+program.rkyv containing all modules.
 
-Uses corec as a library for codegen. No codegen duplication.
+Five verification tiers:
+1. Module linking — imports resolve, exports valid, no cycles
+2. Type graph — every TypeName/TraitName references a real definition
+3. Trait structure — impl methods match decl signatures
+4. Scope and visibility — name uniqueness, private/public
+5. Literal/const — value types match declarations
 
-The generated crate IS the semac↔rsc rkyv contract — the same
-pattern as aski-core (askicc↔askic) and aski (askic↔semac).
+veric catches structural errors before semac. semac receives
+a verified program and can trust all references are valid.
+
+See ~/git/veric/ARCHITECTURE.md for full design.
+
+
+## domainc — The Domain Proc Macro
+
+A proc-macro crate that reads veric's program.rkyv at
+compile time and expands into per-program domain types with
+rkyv derives. No intermediate source files. No separate
+binary.
+
+```rust
+domainc::domains!(env!("PROGRAM_RKYV"));
+```
+
+semac and rsc both invoke the same macro on the same
+program.rkyv to get identical types. The .rkyv IS the
+contract — the macro is just the mechanism.
 
 ### What It Reads
 
-`Vec<RootChild>` from askic's rkyv output. It extracts:
+`Vec<ModuleDef>` from veric's program.rkyv. It extracts:
 
 - **EnumDef** → Rust enums (bare, data-carrying, struct variants, nested)
 - **StructDef** → Rust structs (typed fields, self-typed fields, nested)
@@ -194,24 +229,17 @@ Copy + Eq + Hash.
 domainc generates the NOUNS (types). semac generates the
 VERBS (implementations).
 
-### Relationship to corec
+### Dependencies
 
 ```
-domainc depends on: corec (library) + aski (rkyv types) + rkyv
-corec depends on: nothing (bootstrap)
+domainc depends on: aski (rkyv types) + rkyv + proc-macro2 + quote
 ```
 
-### Output Crate Structure
+domainc is independent of corec. Each has its own codegen.
 
-```
-<program>-domains/
-  Cargo.toml       [package] name = "<program>-domains"
-  src/
-    lib.rs          mod declarations + re-exports
-    elements.rs     per-module generated types
-```
+### Usage
 
-semac depends on this crate via flake-crates/:
+semac and rsc depend on domainc as a proc-macro crate:
 ```toml
 [dependencies]
 astro-domains = { path = "flake-crates/astro-domains" }
@@ -432,7 +460,7 @@ The synth rules define the typed domain-tree that askic's
 engine populates at runtime. These domain types are defined
 in .aski files:
 
-- `askicc/aski/root.aski` — RootChild, ModuleDef, EnumDef, StructDef, NewtypeDef, ConstDef, FfiDef
+- `askicc/aski/root.aski` — ModuleDef (container), EnumDef, StructDef, NewtypeDef, ConstDef, FfiDef
 - `askicc/aski/type.aski` — TypeExpr, TypeApplication, GenericParam
 - `askicc/aski/expr.aski` — Expr, FieldInit
 - `askicc/aski/statement.aski` — Statement, Instance, Mutation, Loop, Iteration
@@ -547,14 +575,15 @@ impls). `main` is the only exception.
 ## Repos
 
 ```
-corec        .aski → Rust with rkyv derives (bootstrap tool + library)
+corec        .aski → Rust with rkyv derives (bootstrap tool)
 aski-core    grammar .aski + corec → rkyv types (askicc↔askic)
-aski         parse tree .aski + corec → rkyv types (askic↔semac)
+aski         parse tree .aski + corec → rkyv types (askic↔veric↔semac)
 askicc       .synth → rkyv dialect-data-tree (32 dialects)
-askic        dialect engine → rkyv parse tree (29 tests, nix verified)
-domainc      rkyv parse tree → Rust domain crate (per-program semac↔rsc)
-semac        rkyv parse tree + domains → .sema (pure binary)
-rsc          .sema + domains → .rs (Rust projection)
-askid        .sema + domains + name table → .aski (canonical text)
+askic        .aski → per-module .rkyv (ModuleDef, 29 tests)
+veric        per-module .rkyv → program.rkyv (verified, linked)
+domainc      program.rkyv → domain types (proc macro)
+semac        program.rkyv + domain types → .sema (pure binary)
+rsc          .sema + domain types → .rs (Rust projection)
+askid        .sema + domain types + name table → .aski (canonical text)
 sema         Nix aggregator
 ```
