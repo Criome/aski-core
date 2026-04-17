@@ -242,6 +242,14 @@ comes from the data-tree's context, not from grammar
 complexity.
 
 
+## Defined Inputs and Outputs
+
+Every pipeline component has defined inputs and defined
+outputs. A component can take multiple inputs of different
+kinds and produce multiple outputs. What matters is that
+every input and output is explicit and known.
+
+
 ## No Shortcuts in Compiler Work
 
 Never propose raw text passthrough, "skip for now" stubs,
