@@ -26,7 +26,7 @@ askid       — .sema + domain types + name table → .aski (canonical text)
 ```
 
 Each stage is a nix derivation depending on the previous.
-Each binary has one defined input and one defined output.
+Each component has defined inputs and defined outputs.
 
 askic compiles each .aski file independently to a per-module
 .rkyv containing a structured ModuleDef. veric reads all
