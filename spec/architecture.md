@@ -13,12 +13,14 @@ it has unsized data, it is not sema.
 ## The Pipeline
 
 ```
-corec       — .aski → Rust with rkyv derives (the bootstrap tool, lives in its own repo)
+corec       — .aski → Rust with rkyv derives (bootstrap tool + library)
 aski-core   — grammar .aski + corec → Rust rkyv types (askicc↔askic contract)
 aski        — parse tree .aski + corec → Rust rkyv types (askic↔semac contract)
 askicc      — uses aski-core types → rkyv dialect-data-tree (embedded in askic)
 askic       — uses aski-core (input) + aski (output), embeds askicc's rkyv
-semac       — reads rkyv parse tree (aski types) → .sema + .aski-table.sema + Rust
+domainc     — rkyv parse tree → Rust domain crate (per-program semac↔rsc contract)
+semac       — rkyv parse tree + domain crate → .sema (pure binary, no strings)
+rsc         — .sema + domain crate → .rs (Rust source)
 ```
 
 Each stage is a nix derivation depending on the previous.
@@ -92,15 +94,39 @@ Three layers:
 - Builders — per-dialect constructors, converts ParseValues to aski types
 
 
+## domainc — The Domain Compiler
+
+Reads askic's rkyv parse tree. Extracts ALL domain definitions
+(enums, structs, newtypes, consts, scope indices). Generates a
+Rust crate with rkyv derives — the per-program sema types.
+
+Uses corec as a library for codegen. No codegen duplication.
+
+The generated crate IS the semac↔rsc rkyv contract — the same
+pattern as aski-core (askicc↔askic) and aski (askic↔semac).
+See spec/domainc.md for details.
+
+
 ## semac — The Sema Backend
 
-Reads rkyv parse tree (aski types). Performs semantic analysis:
+Reads rkyv parse tree (aski types) + per-program domain crate
+(from domainc). Performs semantic analysis:
 - Builds scope tree from domain definitions
 - Resolves all names against scopes
-- Generates per-program domain types as .aski core definitions
-- Uses corec to compile those into Rust types
-- Compiles expressions/bodies using the resolved types
-- Produces .sema (pure binary) + .aski-table.sema (name projection) + Rust source
+- Compiles expressions/bodies using the resolved domain types
+- Serializes the resolved tree as .sema using the domain crate
+- Produces .sema (pure binary, no strings) + .aski-table.sema
+
+semac produces SEMA — not Rust. The .sema binary is the domain
+tree serialized with per-program types. Every string resolved
+to a domain variant.
+
+
+## rsc — The Rust Projector
+
+Reads .sema + domain crate. Projects to Rust source. A pure
+mechanical transformation — each domain variant maps to one
+Rust codegen pattern. No semantic analysis.
 
 
 ## Per-Program Domain Generation
@@ -108,10 +134,7 @@ Reads rkyv parse tree (aski types). Performs semantic analysis:
 The parse tree contains domain definitions with strings:
 `EnumDef { name: "Element", children: [Variant("Fire"), ...] }`
 
-semac extracts these and writes .aski core definitions:
-`(Element Fire Earth Air Water)`
-
-corec compiles them into Rust enums with rkyv derives:
+domainc reads these and generates Rust types:
 `pub enum Element { Fire, Earth, Air, Water }`
 
 These ARE the sema domains. The enum discriminant IS the byte.
@@ -184,11 +207,13 @@ impls). `main` is the only exception.
 ## Repos
 
 ```
-corec        .aski → Rust with rkyv derives (bootstrap tool)
+corec        .aski → Rust with rkyv derives (bootstrap tool + library)
 aski-core    grammar .aski + corec → rkyv types (askicc↔askic)
 aski         parse tree .aski + corec → rkyv types (askic↔semac)
 askicc       .synth → rkyv dialect-data-tree (32 dialects)
 askic        dialect engine → rkyv parse tree (29 tests, nix verified)
-semac        rkyv parse tree → sema + Rust (implementation pending)
+domainc      rkyv parse tree → Rust domain crate (per-program semac↔rsc)
+semac        rkyv parse tree + domains → .sema (pure binary)
+rsc          .sema + domains → .rs (Rust projection)
 sema         Nix aggregator
 ```
