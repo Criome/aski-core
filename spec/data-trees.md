@@ -63,7 +63,7 @@ Source of truth (currently incomplete — see aski-core CLAUDE.md):
   Cardinality, DialectKind, Sigil
 
 corec is one of only two tools that generate Rust (the other
-is semac). corec is used by both aski-core and sema-core.
+is semac). corec is used by both aski-core and aski.
 
 
 ## Stage 2: askicc's Output — rkyv Domain-Data-Tree
@@ -109,7 +109,7 @@ parse tree. askic is a generic dialect engine — it contains
 no language-specific parsing logic. askicc's rkyv domain-data-
 tree (aski-core types) is embedded in askic at build time,
 and the engine executes it as a dialect-based state machine.
-askic serializes its parse tree output using sema-core types —
+askic serializes its parse tree output using aski types —
 the contract that semac reads.
 
 askic's output is rkyv, NOT sema — it has strings (user
@@ -123,8 +123,8 @@ what values were found. Pure domains all the way down.
 
 ## What semac Receives
 
-semac receives askic's rkyv parse tree (sema-core types).
-semac depends only on sema-core, NOT on aski-core. This is
+semac receives askic's rkyv parse tree (aski types).
+semac depends only on aski, NOT on aski-core. This is
 NOT sema yet — it has strings (user names, literals). semac
 resolves strings to domain variants and produces:
 
@@ -162,7 +162,7 @@ data becomes fixed-size, where rkyv becomes sema.
 **The pipeline forms a clear chain:**
 - corec: generates Rust rkyv types from .aski definitions
 - aski-core: grammar types (askicc↔askic contract) → corec → Rust
-- sema-core: parse tree types (askic↔semac contract) → corec → Rust
+- aski: parse tree types (askic↔semac contract) → corec → Rust
 - askicc: the grammar data (what SHAPE each thing has) → rkyv
 - askic: the populated data (what VALUES each thing holds) → rkyv
 - semac: the canonical form (domain variants as bytes) → sema + Rust

@@ -284,10 +284,10 @@ The pipeline:
 ```
 corec     — .aski → Rust with rkyv derives (the bootstrap tool)
 aski-core — grammar .aski + corec → Rust rkyv types (askicc↔askic contract)
-sema-core — parse tree .aski + corec → Rust rkyv types (askic↔semac contract)
+aski — parse tree .aski + corec → Rust rkyv types (askic↔semac contract)
 askicc    — uses aski-core types → rkyv dialect-data-tree (embedded in askic)
-askic     — uses aski-core (input) + sema-core (output), embeds askicc's rkyv
-semac     — uses sema-core types only, independent of aski
+askic     — uses aski-core (input) + aski (output), embeds askicc's rkyv
+semac     — uses aski types only, independent of aski
 ```
 
 Six repos. Only corec and semac generate Rust.
@@ -302,10 +302,10 @@ between askicc and askic. corec generates Rust with rkyv derives
 from the .aski definitions. Both askicc (serializer) and askic
 (deserializer) depend on corec's output from aski-core.
 
-**sema-core** defines every type that appears in the rkyv message
+**aski** defines every type that appears in the rkyv message
 between askic and semac. corec generates Rust with rkyv derives
-from sema-core's .aski definitions. askic (serializer) and semac
-(deserializer) depend on corec's output from sema-core. semac
+from aski's .aski definitions. askic (serializer) and semac
+(deserializer) depend on corec's output from aski. semac
 does NOT depend on aski-core.
 
 
