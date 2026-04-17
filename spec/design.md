@@ -251,6 +251,33 @@ Not hex strings. Not JSON arrays of integers. Not text
 representations of any kind. The bytes ARE the protocol.
 
 
+## .sema Is the Canonical Format
+
+`.sema` binary is the canonical representation. Everything else
+is a projection. .aski is a text projection. .rs is a code
+projection. .aski-table.sema is a name projection.
+
+
+## No Generated Rust Outside corec, domainc, and semac
+
+Only three places in the pipeline generate Rust source code:
+- **corec** — generates Rust with rkyv derives from .aski
+- **domainc** — generates per-program domain crate from rkyv parse tree
+- **semac** — the permanent backend, turns sema into Rust
+
+askicc does NOT generate Rust. It produces rkyv data that
+gets embedded in the askic binary at build time.
+
+
+## No Free Functions
+
+All Rust in the sema ecosystem uses methods on types (traits
++ impls). No free functions. `main` is the only exception.
+
+All Rust will eventually be rewritten in aski, which uses
+methods (traits, impls). Free functions have no aski equivalent.
+
+
 ## Module Names Drop the -aski Suffix
 
 Repo name minus `-aski` suffix = module name. `astro-aski` →
@@ -274,55 +301,217 @@ verifying it's still active. When in doubt, use "Criome" as
 the universal framing term, not "Sema" or "Sajban."
 
 
-## .sema Is the Canonical Format
+## Generics
 
-`.sema` binary is the canonical representation. Everything else
-is a projection. .aski is a text projection. .rs is a code
-projection. .aski-table.sema is a name projection.
+### Core Principles
 
-The pipeline:
+1. **Names are meaningful.** No pointer names like T, X, A, B. The
+   name describes what the thing IS.
+
+2. **Two different things have different names.** `$Left` and `$Right`
+   are different even if they share qualities. Name IS identity.
+
+3. **Bounds ARE names.** `$Clone&Debug` — the constraints identify
+   the parameter. No separate name + bounds.
+
+4. **Everything is structured.** No opaque strings, no engine escapes.
+   Types are synth-driven, producing structured nodes.
+
+5. **Delimiter-first.** Type application is `[Constructor Arg]`, not
+   `Constructor<Arg>`. `<>` is not an aski delimiter.
+
+6. **We compile to Rust.** No higher-kinded types. Kinds are implicit
+   (count $ slots in a definition).
+
+7. **Everything synth-driven.** Types have their own dialect (Type.synth).
+
+
+### What Type Parameters ARE
+
+A type parameter is a **type-level function argument**. A type
+constructor (Vec, Option, Result) is a function from types to types.
+Application yields a concrete type.
+
+In aski, the parameter's name describes its semantic role. There are
+no meaningless placeholder variables.
+
+
+### Type Syntax
+
+#### Simple type
+
+```aski
+Element                      ;; a bare type name
+U32                          ;; a primitive
 ```
-corec     — .aski → Rust with rkyv derives (the bootstrap tool)
-aski-core — grammar .aski + corec → Rust rkyv types (askicc↔askic contract)
-aski — parse tree .aski + corec → Rust rkyv types (askic↔semac contract)
-askicc    — uses aski-core types → rkyv dialect-data-tree (embedded in askic)
-askic     — uses aski-core (input) + aski (output), embeds askicc's rkyv
-semac     — uses aski types only, independent of aski
+
+#### Type application — [] delimiter
+
+```aski
+[Vec Element]                ;; Vec applied to Element
+[Option Element]             ;; Option applied to Element
+[Result Element String]      ;; two parameters
+[Vec [Option Element]]       ;; nested
+[Map String [Vec Element]]   ;; composed
 ```
 
-Six repos. Only corec and semac generate Rust.
-Only semac produces true sema. Everything between them is
-rkyv-serialized domain-data-trees.
+#### Instance of applied type — @[]
+
+```aski
+@[Vec Element]               ;; instance of Vec of Element
+@[Vec $Clone&Debug]          ;; instance of Vec of generic param
+```
+
+#### Type parameter — $ sigil
+
+```aski
+$Value                       ;; bare named slot
+$Clone&Debug                 ;; bounded — bounds ARE the name
+$Clone&Debug&Display         ;; multiple bounds
+```
+
+#### Reference to type parameter — @
+
+```aski
+@Clone&Debug                 ;; reference to the $Clone&Debug param
+```
 
 
-## The Two rkyv Contracts
+### Enum Definitions with Parameters
 
-**aski-core** defines every type that appears in the rkyv message
-between askicc and askic. corec generates Rust with rkyv derives
-from the .aski definitions. Both askicc (serializer) and askic
-(deserializer) depend on corec's output from aski-core.
+#### One parameter
 
-**aski** defines every type that appears in the rkyv message
-between askic and semac. corec generates Rust with rkyv derives
-from aski's .aski definitions. askic (serializer) and semac
-(deserializer) depend on corec's output from aski. semac
-does NOT depend on aski-core.
+```rust
+enum Option<T> { Some(T), None }
+```
+
+```aski
+(Option (Some $Value) None)
+```
+
+#### Two parameters (different roles)
+
+```rust
+enum Result<T, E> { Ok(T), Err(E) }
+```
+
+```aski
+(Result (Ok $Output) (Err $Failure))
+```
+
+#### Two parameters (same quality, different identity)
+
+```rust
+struct Pair<A, B> { left: A, right: B }
+```
+
+```aski
+{Pair (LeftValue $LeftValue) (RightValue $RightValue)}
+```
 
 
-## No Generated Rust Outside corec and semac
+### Struct Fields
 
-Only two places in the pipeline generate Rust source code:
-- **corec** — generates Rust with rkyv derives from .aski
-- **semac** — the permanent backend, turns sema into Rust
+#### Typed field — () delimiter
 
-askicc does NOT generate Rust. It produces rkyv data that
-gets embedded in the askic binary at build time.
+```aski
+{Container (Items [Vec Item]) (Count U32)}
+```
+
+#### Self-typed field — bare name (encouraged)
+
+```aski
+{Drawing (Shapes [Vec Shape]) Name}
+```
+
+`Name` is self-typed: field name IS the type.
 
 
-## No Free Functions
+### Recursive Nesting
 
-All Rust in the sema ecosystem uses methods on types (traits
-+ impls). No free functions. `main` is the only exception.
+#### Nested enum inside domain or struct — (| |)
 
-All Rust will eventually be rewritten in aski, which uses
-methods (traits, impls). Free functions have no aski equivalent.
+```aski
+(Shape
+  (Circle F64)
+  (Compound [Vec Shape])
+  (| Status Active Inactive Done |))
+```
+
+#### Nested struct inside domain or struct — {| |}
+
+```aski
+{Drawing
+  (Shapes [Vec Shape])
+  Name
+  {| Config (Timeout U32) (Retries U32) |}}
+```
+
+
+### Synth Dialects for Generics
+
+#### Type.synth
+
+```synth
+;; instance of applied type: @[Vec Element], @[Vec $Clone&Debug]
+// _@_[<TypeApplication>]
+
+;; applied type: [Vec Element], [Option $Value]
+// [<TypeApplication>]
+
+;; type parameter: $Value, $Clone&Debug
+// _$_<GenericParam>
+
+;; simple type reference: Element, U32
+// @Type
+```
+
+#### TypeApplication.synth
+
+```synth
+@Constructor +<Type>
+```
+
+#### GenericParam.synth
+
+```synth
+;; bounded: $Clone&Debug
+// @Bound +(_&_ @Bound)
+
+;; bare: $Value
+// @Param
+```
+
+
+### aski-core Updates for Generics
+
+#### node.aski — new node kinds
+
+```
+TypeApplication      ;; [Vec Item] — constructor applied to args
+TypeParam            ;; $Value — a named type slot
+BoundedParam         ;; $Clone&Debug — slot where bounds are name
+TypeParamRef         ;; @Clone&Debug — reference to declared param
+SimpleType           ;; Element, U32 — a bare type name
+NestedDomain         ;; (| ... |) — domain inside domain/struct
+NestedStruct         ;; {| ... |} — struct inside domain/struct
+```
+
+#### name.aski — new name domain
+
+```
+TypeParamName        ;; identity of a type parameter
+```
+
+
+### Kinds (Implicit)
+
+Kind is inferred from the enum definition:
+
+```aski
+(Option (Some $Value) None)            ;; 1 slot: Type -> Type
+(Result (Ok $Output) (Err $Failure))   ;; 2 slots: Type -> Type -> Type
+(Element Fire Earth Air Water)          ;; 0 slots: Type (concrete)
+```
+
+No explicit kind annotations needed.
