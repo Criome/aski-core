@@ -37,6 +37,29 @@ macro that reads program.rkyv at compile time and generates
 domain types — no intermediate source files.
 
 
+## Four Surfaces (v0.18)
+
+askicc produces one dialect rkyv per surface:
+
+- `dialects.core.rkyv` — pure type definitions (for corec)
+- `dialects.aski.rkyv` — modules and libraries (for askic)
+- `dialects.synth.rkyv` — grammar self-description (for tooling)
+- `dialects.exec.rkyv` — executable programs (for askic)
+
+askic dispatches on file extension: `.core` → core, `.aski`
+→ aski, `.synth` → synth, `.exec` → exec. Each surface's
+dialect tree is loaded independently. Cross-surface dialect
+references use `<:surface:Name>` to avoid duplication — exec
+references `<:aski:Statement>` rather than duplicating the
+entire statement grammar.
+
+The synth language extension in v0.18:
+- `@Label` reads a source token AND identifies output variant
+- `#Tag#` names output variant WITHOUT reading source
+- `<:surface:Name>` references another surface's dialect
+- Space after opening / before closing delimiters is no-op
+
+
 ## The Naming IS the Architecture
 
 ```

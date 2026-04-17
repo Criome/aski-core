@@ -37,13 +37,54 @@ Enum, struct, and newtype are three forms of domain:
 
 - **Enum** `()` — one-of. `(Element Fire Earth Air Water)`
 - **Struct** `{}` — all-of. `{Point (Horizontal F64) (Vertical F64)}`
-- **Newtype** bare — wraps one type. `Counter U32`
+- **Newtype** `(||)` — wraps one type. `(| Counter U32 |)`
 
 The delimiter determines the form. All three are domains.
 Enums and structs are two sides of the same thing — the two
-shapes that composed data takes.
+shapes that composed data takes. Newtypes are transparent
+wrappers — the pipes connote "one thing wrapped."
 
-The enum form specifically is called "enum."
+
+## Surfaces (v0.18)
+
+Aski has four surfaces, each a grammar family for a specific
+file kind:
+
+- **core** (`.core`) — pure type definitions. What corec eats.
+- **aski** (`.aski`) — modules, libraries. What askic parses.
+- **synth** (`.synth`) — grammar definitions. What askicc parses.
+- **exec** (`.exec`) — executable programs. What askic runs.
+
+Each surface has its own `Root.synth` and its own dialect
+tree. Surfaces don't share `.synth` files directly — they
+reference across surfaces via `<:surface:Name>` syntax. This
+keeps surfaces independent while avoiding duplication.
+
+The exec surface is minimal (just Root and Module) —
+everything else is referenced from aski. Core similarly
+references aski for Type expressions.
+
+
+## Every Construct Is Delimited (v0.18)
+
+No bare multi-item sequences. Every construct at every level
+has explicit delimiters so the engine always knows what it's
+reading before entering.
+
+Aski root delimiter allocation:
+
+| Delimiter | Construct |
+|-----------|-----------|
+| `()` | Module (first), Enum, TraitDecl |
+| `[]` | TraitImpl |
+| `{}` | Struct |
+| `{||}` | Const |
+| `(||)` | Newtype |
+| `[||]` | FFI |
+
+Process (the `main` block) moved to the exec surface (`.exec` files).
+No bare newtypes. No fallback rules. The delimiter identifies
+the construct; the `@LabelKind` after it reads the name.
 
 
 ## Everything Is a Type

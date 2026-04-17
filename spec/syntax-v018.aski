@@ -1,28 +1,27 @@
-;; Aski v0.17 — positional dialects
+;; Aski v0.18 — four surfaces, fully delimited
 ;;
-;; Position defines meaning. Synth IS the grammar.
-;; Dialects define positions. Six delimiter pairs.
-;;
-;; There are no variables. @ declares a type instance.
-;; @Counter U32/new(0) declares newtype Counter wrapping U32.
-;; PascalCase after @ always — it is a THING, not an action.
+;; Four surfaces: core, aski, synth, exec.
+;; File extension determines surface (.core, .aski, .synth, .exec).
+;; Every construct delimited. No bare constructs anywhere.
 ;;
 ;; Sigils:
-;;   @ = instance        : = borrow
+;;   @ = instance        : = borrow / reference
 ;;   ~ = mutable         $ = type parameter
 ;;   ^ = early return     ? = try-unwrap (postfix)
 ;;   & = trait combinator / = path (Type/Variant)
 ;;
-;; At root:
+;; Aski root delimiters (v0.18):
 ;;   ()      Module (first, required), Enum, TraitDecl
 ;;   []      TraitImpl
 ;;   {}      Struct
 ;;   {| |}   Const
-;;   (| |)   FFI
-;;   [| |]   Process
-;;   (bare)  Newtype — PascalCase followed by Type
+;;   (| |)   Newtype        (was FFI in v0.17)
+;;   [| |]   FFI            (was Process in v0.17)
 ;;
-;; Delimiters in body:
+;; Process moved to the exec surface as `[<Program>]`.
+;; Newtype gets its own delimiter — no more bare `Counter U32`.
+;;
+;; Body delimiters (unchanged from v0.17):
 ;;   ()      Local type declaration
 ;;   []      Block, InlineEval, TypeApplication
 ;;   {}      StructConstruct
@@ -30,7 +29,7 @@
 ;;   {| |}   Iteration
 ;;   (| |)   Match
 ;;
-;; Delimiters in definitions (recursive nesting):
+;; Definition delimiters (recursive nesting):
 ;;   (| |)   Nested enum inside domain/struct
 ;;   {| |}   Nested struct inside domain/struct
 ;;   ()      Typed field inside struct
@@ -74,12 +73,12 @@
 
 
 ;; =============================================================
-;; NEWTYPES — undelimited, PascalCase followed by Type
+;; NEWTYPES — v0.18 uses (| |) delimiter (was bare in v0.17)
 ;; =============================================================
 
-Counter U32
-Meters F64
-Items [Vec Item]
+(| Counter U32 |)
+(| Meters F64 |)
+(| Items [Vec Item] |)
 
 
 ;; =============================================================
@@ -257,17 +256,17 @@ Items [Vec Item]
 
 
 ;; =============================================================
-;; FFI
+;; FFI — v0.18 uses [| |] delimiter (was (| |) in v0.17)
 ;; =============================================================
 
-(| Lexer
+[| Lexer
   (lex @Source String [Vec Token])
-|)
+|]
 
-(| FileSystem
+[| FileSystem
   (readToString @Path String String)
   (writeString @Path String @Content String)
-|)
+|]
 
 
 ;; =============================================================
@@ -302,13 +301,21 @@ Items [Vec Item]
 
 
 ;; =============================================================
-;; PROCESS — [| ... |] inline executable
+;; PROCESS — moved to exec surface in v0.18
 ;; =============================================================
-
-[|
-  @MyElement Element/Fire
-  StdOut/print(@MyElement.describe)
-|]
+;;
+;; Aski files no longer contain process blocks. Programs live
+;; in separate .exec files with this shape:
+;;
+;;   (Main [elements :Element])
+;;
+;;   [
+;;     @MyElement Element/Fire
+;;     StdOut/print(@MyElement.describe)
+;;   ]
+;;
+;; The exec surface uses [] as the program delimiter and only
+;; supports imports + consts + the main body.
 
 
 ;; =============================================================

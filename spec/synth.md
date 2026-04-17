@@ -9,10 +9,11 @@ Synth is part of the aski language family. No newline
 significance. Whitespace is only a token separator.
 
 
-## Space Is Significant
+## Space Is Significant (Between Non-Delimiter Items)
 
-Space in a synth rule means space is allowed in source.
-No space means tokens must be adjacent.
+Space in a synth rule between non-delimiter items means
+space is allowed in source. No space means tokens must be
+adjacent.
 
 ```synth
 @Type / @Variant          ;; matches: Element / Fire
@@ -23,6 +24,70 @@ No space means tokens must be adjacent.
 The engine checks token spans to enforce adjacency.
 `Element/Fire` — the `/` starts where `Element` ends.
 `Element / Fire` — there are gaps between spans.
+
+
+## Space After Opening / Before Closing Delimiters Is a No-op
+
+Whitespace (including newlines) after an opening delimiter
+and before a closing delimiter is non-significant in both
+synth and aski source. These forms are all equivalent:
+
+```synth
+(@Name <Type>)
+( @Name <Type> )
+(
+  @Name
+  <Type>
+)
+```
+
+In aski source, the same rule applies:
+
+```aski
+(Element Fire Earth Air Water)
+( Element Fire Earth Air Water )
+(
+  Element
+  Fire Earth
+  Air Water
+)
+```
+
+Dense formatting and multi-line formatting are always valid.
+The "pretty" form with breathing room around delimiter
+contents is the recommended style — synth syntax is dense
+and the extra space aids readability.
+
+Adjacency tracking only applies to items NOT adjacent to
+delimiters: `@Type/@Variant` stays adjacent; `( @Type @Variant )`
+works because the space is next to delimiters, not between
+items themselves.
+
+
+## Surfaces (v0.18)
+
+Synth is organized into four **surfaces**, each a dialect
+family with its own root rule and rkyv artifact. Each
+surface's `.synth` files live in their own subdirectory.
+
+| Surface | Purpose | Consumer | Extension |
+|---------|---------|----------|-----------|
+| core | Pure type definitions | corec | .core |
+| aski | Modules and libraries | askic | .aski |
+| synth | Grammar self-description | tooling | .synth |
+| exec | Executable programs | askic | .exec |
+
+```
+askicc/source/
+  core/    — Root, Enum, Struct (no module header)
+  aski/    — full grammar (module, enums, traits, FFI, etc.)
+  synth/   — synth describing synth (self-description)
+  exec/    — Root + Module only (refs aski via <:aski:...>)
+```
+
+askicc produces one rkyv per surface:
+`generated/dialects.<surface>.rkyv`. askic dispatches on
+file extension to load the right dialect tree.
 
 
 ## File Structure
@@ -75,15 +140,50 @@ camelCase `@name` reads a camelCase identifier.
 @trait           ;; reads a camelCase name, declares it
 ```
 
-### Dialect Reference — `<Name>`
+### Tag — `#Name#`
 
-Pushes into another dialect to parse a sub-construct:
+Names the output variant that an alternative or a delimiter
+produces. Does NOT read a source token. Used when the
+construct has no `@Label` position (operators, delimited
+structural forms, binary expressions).
 
 ```synth
-<Enum>           ;; parse using Enum.synth
-<Type>           ;; parse using Type.synth
-<Expr>           ;; parse using Expr.synth
+// <ExprAnd> #BinOr#|| <ExprOr>    ;; || is the operator; #BinOr# names the output
+// #InlineEval#[ <Body> ]           ;; the bracket delimiter IS the construct
+// #EarlyReturn#^<Expr>             ;; ^ is a literal sigil
 ```
+
+Every delimiter at every level should be tagged. The engine
+reads `#Tag#` and knows the output variant before entering
+the delimiter — no guessing, no backtracking.
+
+`@Label` reads a source token AND identifies the output.
+`#Tag#` identifies the output WITHOUT reading. Both resolve
+to a LabelKind in the dialect data.
+
+
+### Dialect Reference — `<Name>` or `<:surface:Name>`
+
+Pushes into another dialect to parse a sub-construct.
+
+Bare `<Name>` refers to a dialect in the CURRENT surface:
+
+```synth
+<Enum>           ;; parse using same-surface Enum.synth
+<Type>           ;; parse using same-surface Type.synth
+```
+
+Cross-surface refs use `<:surface:Name>`:
+
+```synth
+<:aski:Statement>   ;; use aski surface's Statement dialect
+<:aski:Type>        ;; use aski surface's Type dialect
+```
+
+The exec surface uses this to reference aski's expression
+and statement grammar without duplication. Core surface
+uses this to reference aski's Type dialect for type
+expressions inside fields.
 
 ### Literal Escape — `_X_`
 
