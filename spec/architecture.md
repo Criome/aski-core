@@ -16,7 +16,7 @@ it has unsized data, it is not sema.
 corec       — .aski → Rust with rkyv derives (bootstrap tool)
 aski-core   — grammar .aski + corec → Rust rkyv types (askicc↔askic contract)
 aski        — parse tree .aski + corec → Rust rkyv types (askic↔veric↔semac contract)
-askicc      — uses aski-core types → rkyv dialect-data-tree (embedded in askic)
+askicc      — uses synth-core types → dsls.rkyv (all 4 DSLs combined, embedded in askic)
 askic       — .aski source → per-module .rkyv (ModuleDef, structured)
 veric       — per-module .rkyv → program.rkyv (verified, linked)
 domainc     — program.rkyv → domain types (proc macro, compile-time)
