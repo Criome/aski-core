@@ -435,7 +435,7 @@ definition:
 - `+` repeated items → Vec of domain
 - `?` optional items → Option of domain
 
-The synth grammar IS the dsl-tree schema.
+The synth grammar IS the domain-tree schema.
 
 ```synth
 ;; Enum.synth defines this domain:
@@ -475,16 +475,18 @@ Source of truth (currently incomplete — see aski-core CLAUDE.md):
 - (missing) — Dialect, Rule, Item, ItemContent, DelimKind,
   Cardinality, DialectKind, Sigil
 
-### Stage 2: askicc's Output — rkyv Dsl Tree
+### Stage 2: askicc's Output — rkyv Domain-Data-Tree
 
 askicc reads .synth dialect files from each DSL's subdirectory,
-populates a dsl tree using synth-core's corec-generated types,
-and serializes it as a single `dsls.rkyv` containing all four
-DSLs. This rkyv data gets embedded in the askic binary at build
-time, giving askic the ability to read that version of aski's
-grammar. askic deserializes using the same corec-generated types.
+populates a domain-data-tree using synth-core's corec-generated
+types, and serializes it as a single `dsls.rkyv` containing all
+four DSLs. This rkyv data gets embedded in the askic binary at
+build time, giving askic the ability to read that version of
+aski's grammar. askic deserializes using the same corec-generated
+types. The tree itself is pure domain composition — every node
+is an enum (one-of) or struct (all-of) of synth-core types.
 
-The dsl tree IS the state machine that drives askic's
+The domain-data-tree IS the state machine that drives askic's
 parser. It captures what tokens to match, in what order, with
 what adjacency, using what delimiters, with what cardinality.
 
@@ -547,7 +549,7 @@ domain. The grammar defines the tree's type system. No
 separate "AST definition" — the grammar IS the AST.
 
 **Grammar is data, not code.** askicc produces a rkyv
-dsl tree that gets embedded in askic. askic is a
+domain-data-tree that gets embedded in askic. askic is a
 generic dialect engine with no language knowledge compiled in.
 
 **Parsing = walking a state machine.** askic executes the
