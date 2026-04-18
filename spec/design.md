@@ -582,3 +582,48 @@ Kind is inferred from the enum definition:
 ```
 
 No explicit kind annotations needed.
+
+
+## Origins (Reserved)
+
+The `'` sigil is reserved for **origin annotations** — aski's
+forward-compatibility slot for Rust's place-based lifetime syntax
+(the user-facing part of the Polonius/place-types roadmap).
+
+No semantics are assigned today. Rust itself has not merged an RFC
+for place-based lifetime syntax; committing to specifics would lock
+us in before the underlying language does. Reserving the sigil
+guarantees v0.18 grammar doesn't paint into a corner.
+
+When origins land in Rust, aski will spell them as `'Place` attached
+to a borrow. Provisional shape:
+
+```aski
+;; plain borrow, no origin (today's syntax)
+:@Self
+
+;; borrow with origin — reads "borrow of Self, originating at Map"
+:'Map@Self
+
+;; field-path origin (Rust's 'self.model equivalent)
+:'Self/Model@Name
+
+;; view-type / partial-field borrow — reuse {| |}
+~@Self {| Counter |}
+```
+
+These are placeholders. Semantics, exact grammar position, and
+the view-type form will be pinned down when Rust's feature stabilizes.
+
+Until then:
+- `'` appears in no other sigil, position, or grammar slot.
+- Param.synth, Type.synth, Instance.synth do not use `'`.
+- askicc does not lex `'`; any use in source is a hard error
+  (reserved for origins).
+
+Eventually — once Rust origins stabilize and aski pins down the
+semantics — lifetime tests will verify:
+- origin propagation across function boundaries
+- view types vs full borrows
+- that aski's `:` / `~@` / `'` compile to the correct Rust origin
+  annotations in rsc output.

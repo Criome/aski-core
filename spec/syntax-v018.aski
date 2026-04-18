@@ -9,6 +9,7 @@
 ;;   ~ = mutable         $ = type parameter
 ;;   ^ = early return     ? = try-unwrap (postfix)
 ;;   & = trait combinator / = path (Type/Variant)
+;;   ' = origin (reserved, not yet assigned — see design.md §Origins)
 ;;
 ;; Aski root delimiters (v0.18):
 ;;   ()      Module (first, required), Enum, TraitDecl

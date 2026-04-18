@@ -39,25 +39,36 @@ domain types — no intermediate source files.
 
 ## Four Surfaces (v0.18)
 
-askicc produces one dialect rkyv per surface:
+aski has four DSLs, one per file type:
 
-- `dialects.core.rkyv` — pure type definitions (for corec)
-- `dialects.aski.rkyv` — modules and libraries (for askic)
-- `dialects.synth.rkyv` — grammar self-description (for tooling)
-- `dialects.exec.rkyv` — executable programs (for askic)
+- `.core` — pure type definitions (for corec)
+- `.aski` — modules and libraries (for askic)
+- `.synth` — grammar self-description (for tooling)
+- `.exec` — executable programs (for askic)
 
-askic dispatches on file extension: `.core` → core, `.aski`
-→ aski, `.synth` → synth, `.exec` → exec. Each surface's
-dialect tree is loaded independently. Cross-surface dialect
-references use `<:surface:Name>` to avoid duplication — exec
-references `<:aski:Statement>` rather than duplicating the
-entire statement grammar.
+Each DSL is a set of **dialects** — one .synth file per
+dialect (Body.synth, Statement.synth, Expr.synth, …). askicc
+reads source/<surface>/*.synth and produces ONE combined
+rkyv at `generated/dsls.rkyv` containing every dialect from
+every DSL. Each Dialect entry carries its SurfaceKind.
 
-The synth language extension in v0.18:
-- `@Label` reads a source token AND identifies output variant
-- `#Tag#` names output variant WITHOUT reading source
-- `<:surface:Name>` references another surface's dialect
-- Space after opening / before closing delimiters is no-op
+askic dispatches on file extension to pick the entry surface
+(`.core` → Core, `.aski` → Aski, `.synth` → Synth, `.exec`
+→ Exec), then walks dialects looked up by (SurfaceKind,
+DialectKind). Cross-surface refs (`<:surface:Name>` — e.g.,
+exec's `<:aski:Statement>`) resolve via the same flat table.
+
+The synth language in v0.18 splits two orthogonal concepts:
+
+- `#Tag#` — names the output node TYPE. Never reads source.
+  Resolves to `TagKind`.
+- `@Label` / `:Label` — names the ROLE of a source-read
+  identifier. Resolves to `LabelKind`.
+
+No overlap between TagKind and LabelKind. Cross-surface refs
+use `<:surface:Name>`. Whitespace adjacent to delimiters is
+ignored; whitespace between non-delimiter items still
+distinguishes adjacency-required from adjacency-optional.
 
 
 ## The Naming IS the Architecture
@@ -424,7 +435,7 @@ definition:
 - `+` repeated items → Vec of domain
 - `?` optional items → Option of domain
 
-The synth grammar IS the domain-tree schema.
+The synth grammar IS the dsl-tree schema.
 
 ```synth
 ;; Enum.synth defines this domain:
@@ -464,16 +475,16 @@ Source of truth (currently incomplete — see aski-core CLAUDE.md):
 - (missing) — Dialect, Rule, Item, ItemContent, DelimKind,
   Cardinality, DialectKind, Sigil
 
-### Stage 2: askicc's Output — rkyv Domain-Data-Tree
+### Stage 2: askicc's Output — rkyv Dsl Tree
 
-askicc reads .synth dialect files, populates a domain-data-
-tree using aski-core's corec-generated types, and serializes
-it as rkyv. This rkyv data gets embedded in the askic binary
-at build time, giving askic the ability to read that version
-of aski's grammar. askic deserializes using the same
-corec-generated types.
+askicc reads .synth dialect files from each DSL's subdirectory,
+populates a dsl tree using synth-core's corec-generated types,
+and serializes it as a single `dsls.rkyv` containing all four
+DSLs. This rkyv data gets embedded in the askic binary at build
+time, giving askic the ability to read that version of aski's
+grammar. askic deserializes using the same corec-generated types.
 
-The domain-data-tree IS the state machine that drives askic's
+The dsl tree IS the state machine that drives askic's
 parser. It captures what tokens to match, in what order, with
 what adjacency, using what delimiters, with what cardinality.
 
@@ -536,7 +547,7 @@ domain. The grammar defines the tree's type system. No
 separate "AST definition" — the grammar IS the AST.
 
 **Grammar is data, not code.** askicc produces a rkyv
-domain-data-tree that gets embedded in askic. askic is a
+dsl tree that gets embedded in askic. askic is a
 generic dialect engine with no language knowledge compiled in.
 
 **Parsing = walking a state machine.** askic executes the
@@ -598,11 +609,11 @@ impls). `main` is the only exception.
 ## Repos
 
 ```
-corec        .aski → Rust with rkyv derives (bootstrap tool)
-aski-core    grammar .aski + corec → rkyv types (askicc↔askic)
-aski         parse tree .aski + corec → rkyv types (askic↔veric↔semac)
-askicc       .synth → rkyv dialect-data-tree (32 dialects)
-askic        .aski → per-module .rkyv (ModuleDef, 29 tests)
+corec        .core → Rust with rkyv derives (bootstrap tool)
+synth-core   grammar .core + corec → rkyv types (askicc↔askic)
+aski-core    parse tree .core + corec → rkyv types (askic↔veric↔semac)
+askicc       source/<surface>/*.synth → rkyv dsls.rkyv (all 4 DSLs)
+askic        .core/.aski/.synth/.exec → per-module .rkyv (surface-dispatched)
 veric        per-module .rkyv → program.rkyv (verified, linked)
 domainc      program.rkyv → domain types (proc macro)
 semac        program.rkyv + domain types → .sema (pure binary)

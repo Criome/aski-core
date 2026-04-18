@@ -85,9 +85,20 @@ askicc/source/
   exec/    — Root + Module only (refs aski via <:aski:...>)
 ```
 
-askicc produces one rkyv per surface:
-`generated/dialects.<surface>.rkyv`. askic dispatches on
-file extension to load the right dialect tree.
+askicc produces ONE combined rkyv containing every dialect
+from every DSL: `generated/dsls.rkyv`. Each Dialect inside
+carries its SurfaceKind. askic dispatches on file extension
+to pick which surface's Root to enter, then looks up
+(SurfaceKind, DialectKind) in one flat table for every
+dialect ref (same-surface or cross-surface).
+
+Terminology:
+- **DSL** — one of the four surfaces (core, aski, synth, exec).
+  Each is a complete grammar for one file type.
+- **Dialect** — one `.synth` file within a DSL (Body, Statement,
+  Expr, …). Its filename becomes a DialectKind variant.
+- **dsls.rkyv** — the one rkyv bundling all four DSLs'
+  dialects, surface-tagged for dispatch.
 
 
 ## File Structure
@@ -142,24 +153,32 @@ camelCase `@name` reads a camelCase identifier.
 
 ### Tag — `#Name#`
 
-Names the output variant that an alternative or a delimiter
-produces. Does NOT read a source token. Used when the
-construct has no `@Label` position (operators, delimited
-structural forms, binary expressions).
+Names the TYPE of the output node. Does NOT read a source
+token. Every delimited construct and every alternative gets
+exactly one tag.
 
 ```synth
-// <ExprAnd> #BinOr#|| <ExprOr>    ;; || is the operator; #BinOr# names the output
+// <ExprAnd> #BinOr#|| <ExprOr>    ;; || is the operator; #BinOr# names the output type
 // #InlineEval#[ <Body> ]           ;; the bracket delimiter IS the construct
 // #EarlyReturn#^<Expr>             ;; ^ is a literal sigil
+// *#BareVariant#@VariantName       ;; tag + label: "output is BareVariant, reading a VariantName"
 ```
 
 Every delimiter at every level should be tagged. The engine
 reads `#Tag#` and knows the output variant before entering
 the delimiter — no guessing, no backtracking.
 
-`@Label` reads a source token AND identifies the output.
-`#Tag#` identifies the output WITHOUT reading. Both resolve
-to a LabelKind in the dialect data.
+`#Tag#` and `@Label` are **orthogonal**:
+
+- `#Tag#` resolves to a `TagKind` — "what TYPE of output node
+  is this?"
+- `@Label` / `:Label` resolve to a `LabelKind` — "what ROLE
+  does this source-read identifier play?"
+
+They live in separate enums. A node has exactly one tag (its
+type) and zero-or-more labelled fields (source-read
+identifiers bound to roles). Verified across all .synth
+files: no identifier is used as both a tag and a label.
 
 
 ### Dialect Reference — `<Name>` or `<:surface:Name>`
