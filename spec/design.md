@@ -124,12 +124,20 @@ and `$RightValue` are different even if they share qualities.
 Aski uses six delimiter pairs. The opening delimiter comes first,
 then position derives meaning. There are no keywords.
 
-Type application uses `[]`:
+Delimiter semantics (v0.19):
+- `()` — categorical single things (Module, Enum, TraitDecl, local decl, typed field, match arm, call args)
+- `[]` — **evaluation** (block, InlineEval, TraitImpl, ExprStmt, or-pattern)
+- `{}` — **construction / composition** (Struct def, StructConstruct, type application, generic slot, bound set)
+- `(| |)` — Match (body) / Newtype (root)
+- `[| |]` — Loop / FFI
+- `{| |}` — Iteration / Const / View type
+
+Type application uses `{}`:
 
 ```aski
-[Vec Element]               ;; not Vec<Element>
-[Option $Value]             ;; not Option<T>
-[Result $Output $Failure]   ;; not Result<T, E>
+{Vec Element}               ;; not Vec<Element>
+{Option $Value}             ;; not Option<T>
+{Result $Output $Failure}   ;; not Result<T, E>
 ```
 
 `<>` is NOT an aski delimiter. It appears only in synth files
@@ -218,22 +226,37 @@ files = variants). NodeKind variants map to synth rules.
 Name classification is defined in `core/name.aski`.
 
 
-## PascalCase and camelCase
+## PascalCase and camelCase (v0.19)
 
-PascalCase = things. Types, enums, structs, modules,
-variants, fields, type parameters, instances.
+**PascalCase = compile-time structural things** — types, enums,
+structs, newtypes, traits, variants, fields, type parameters,
+modules, consts. The shared structural world.
 
-camelCase = actions. Traits, methods.
+**camelCase = runtime things** — methods, local declarations,
+local references, the `self` keyword. The runtime world.
 
 This is not convention — it is syntax. The parser distinguishes
 PascalCase from camelCase tokens and dispatches differently.
 
+v0.19 trait flip: traits are now PascalCase (they are categories
+of types — noun-like), not camelCase. Methods remain camel.
+Instance/local flip: locals are now camelCase (runtime-bound
+values). The `@` sigil retires entirely; locals are declared
+inside `()` at statement position and referenced bare.
+
 
 ## Mutable Is Marked
 
-`~` marks mutability. `~@Counter` is a mutable instance.
-`~@Self` is a mutable borrow of self. Immutability is the
-default. Mutation is always visible at the declaration site.
+`~` marks mutability — always a modifier, never standalone
+meaning. It composes with the thing being made mutable:
+
+- `~counter` — mutable local binding (at declaration)
+- `~&self` — mutable borrow of self (combines `~` and `&`)
+- `~counter.set(x)` — mutation statement (mutation marker on
+  a method call)
+
+Immutability is the default. Mutation is always visible at the
+declaration site.
 
 
 ## We Compile to Rust
@@ -247,9 +270,10 @@ the compilation target, not the implementation language.
 
 ## Instances Are Owned
 
-Once `@Name` declares a type instance, that name is owned in
-its scope and cannot be re-declared. If you need a new value,
-declare a new name. `@Name` is a one-shot commitment.
+Once a `(name …)` declaration introduces a local, that name is
+owned in its scope and cannot be re-declared. If you need a new
+value, declare a new name. Local declarations are one-shot
+commitments.
 
 This aligns with move-by-default semantics. An instance
 declaration is not an assignment — it is the creation of a
@@ -378,14 +402,15 @@ the universal framing term, not "Sema" or "Sajban."
 2. **Two different things have different names.** `$Left` and `$Right`
    are different even if they share qualities. Name IS identity.
 
-3. **Bounds ARE names.** `$Clone&Debug` — the constraints identify
-   the parameter. No separate name + bounds.
+3. **Bounds ARE names (optionally).** `${Clone Debug}` — bounds alone
+   can identify a parameter. `$Value{Clone Debug}` adds a semantic
+   name. The `&` combinator retires; `{}` groups bounds.
 
 4. **Everything is structured.** No opaque strings, no engine escapes.
    Types are synth-driven, producing structured nodes.
 
-5. **Delimiter-first.** Type application is `[Constructor Arg]`, not
-   `Constructor<Arg>`. `<>` is not an aski delimiter.
+5. **Delimiter-first.** Type application is `{Constructor Arg}`
+   (v0.19; was `[…]`). `<>` is not an aski delimiter.
 
 6. **We compile to Rust.** No higher-kinded types. Kinds are implicit
    (count $ slots in a definition).
@@ -412,39 +437,37 @@ Element                      ;; a bare type name
 U32                          ;; a primitive
 ```
 
-#### Type application — [] delimiter
+#### Type application — {} delimiter (v0.19)
 
 ```aski
-[Vec Element]                ;; Vec applied to Element
-[Option Element]             ;; Option applied to Element
-[Result Element String]      ;; two parameters
-[Vec [Option Element]]       ;; nested
-[Map String [Vec Element]]   ;; composed
+{Vec Element}                ;; Vec applied to Element
+{Option Element}             ;; Option applied to Element
+{Result Element String}      ;; two parameters
+{Vec {Option Element}}       ;; nested
+{Map String {Vec Element}}   ;; composed
 ```
 
-#### Instance of applied type — @[]
+Note: v0.18 used `[…]` for type application. v0.19 moves it to
+`{…}` — construction, not evaluation. `[…]` becomes purely the
+evaluation delimiter (block, InlineEval, TraitImpl, ExprStmt,
+or-pattern).
 
-```aski
-@[Vec Element]               ;; instance of Vec of Element
-@[Vec $Clone&Debug]          ;; instance of Vec of generic param
-```
-
-#### Type parameter — $ sigil
+#### Type parameter — $ sigil (v0.19)
 
 ```aski
 $Value                       ;; bare named slot
-$Clone&Debug                 ;; bounded — bounds ARE the name
-$Clone&Debug&Display         ;; multiple bounds
+$Value{Clone Debug}          ;; bounded (bound set in {})
+$Value{Clone Debug Display}  ;; multiple bounds (space-separated)
+${Clone Debug}               ;; bounds-as-name (no semantic name)
 ```
 
-#### Reference to type parameter — @
-
-```aski
-@Clone&Debug                 ;; reference to the $Clone&Debug param
-```
+No `&` combinator — `{}` is the bound-set delimiter; space between
+trait refs is conjunction.
 
 
-### Enum Definitions with Parameters
+### Enum Definitions with Parameters (v0.19)
+
+Generic slot in `{}` after the definition name.
 
 #### One parameter
 
@@ -453,7 +476,7 @@ enum Option<T> { Some(T), None }
 ```
 
 ```aski
-(Option (Some $Value) None)
+(Option {$Value} (Some $Value) None)
 ```
 
 #### Two parameters (different roles)
@@ -463,7 +486,7 @@ enum Result<T, E> { Ok(T), Err(E) }
 ```
 
 ```aski
-(Result (Ok $Output) (Err $Failure))
+(Result {$Output $Failure} (Ok $Output) (Err $Failure))
 ```
 
 #### Two parameters (same quality, different identity)
@@ -473,7 +496,7 @@ struct Pair<A, B> { left: A, right: B }
 ```
 
 ```aski
-{Pair (LeftValue $LeftValue) (RightValue $RightValue)}
+{Pair {$Left $Right} (LeftValue $Left) (RightValue $Right)}
 ```
 
 
@@ -482,13 +505,13 @@ struct Pair<A, B> { left: A, right: B }
 #### Typed field — () delimiter
 
 ```aski
-{Container (Items [Vec Item]) (Count U32)}
+{Container {$Value} (Items {Vec $Value}) (Count U32)}
 ```
 
 #### Self-typed field — bare name (encouraged)
 
 ```aski
-{Drawing (Shapes [Vec Shape]) Name}
+{Drawing (Shapes {Vec Shape}) Name}
 ```
 
 `Name` is self-typed: field name IS the type.
@@ -501,7 +524,7 @@ struct Pair<A, B> { left: A, right: B }
 ```aski
 (Shape
   (Circle F64)
-  (Compound [Vec Shape])
+  (Compound {Vec Shape})
   (| Status Active Inactive Done |))
 ```
 
@@ -509,65 +532,47 @@ struct Pair<A, B> { left: A, right: B }
 
 ```aski
 {Drawing
-  (Shapes [Vec Shape])
+  (Shapes {Vec Shape})
   Name
   {| Config (Timeout U32) (Retries U32) |}}
 ```
 
 
-### Synth Dialects for Generics
+### Synth Dialects for Generics (v0.19)
 
 #### Type.synth
 
 ```synth
-;; instance of applied type: @[Vec Element], @[Vec $Clone&Debug]
-// _@_[<TypeApplication>]
+;; borrowed type: &{Vec Element}
+// #BorrowedType#_&_?<Origin>?<ViewType>{ <TypeApplication> }
 
-;; applied type: [Vec Element], [Option $Value]
-// [<TypeApplication>]
+;; mutable borrow: ~&{Vec Element}
+// #MutBorrowedType#_~__&_?<Origin>?<ViewType>{ <TypeApplication> }
 
-;; type parameter: $Value, $Clone&Debug
-// _$_<GenericParam>
+;; applied type: {Vec Element}, {Option $Value}
+// #AppliedType#{ <TypeApplication> }
+
+;; type parameter reference: $Value, $Value{Clone Debug}
+// #GenericParamType#<GenericParam>
 
 ;; simple type reference: Element, U32
-// @Type
+// #Named#:Type
 ```
 
 #### TypeApplication.synth
 
 ```synth
-@Constructor +<Type>
+:Constructor +<Type>
 ```
 
 #### GenericParam.synth
 
 ```synth
-;; bounded: $Clone&Debug
-// @Bound +(_&_ @Bound)
+;; bounded: $Value{Clone Debug}
+// #BoundedParam#_$_@Role { +:Bound }
 
 ;; bare: $Value
-// @Param
-```
-
-
-### aski-core Updates for Generics
-
-#### node.aski — new node kinds
-
-```
-TypeApplication      ;; [Vec Item] — constructor applied to args
-TypeParam            ;; $Value — a named type slot
-BoundedParam         ;; $Clone&Debug — slot where bounds are name
-TypeParamRef         ;; @Clone&Debug — reference to declared param
-SimpleType           ;; Element, U32 — a bare type name
-NestedDomain         ;; (| ... |) — domain inside domain/struct
-NestedStruct         ;; {| ... |} — struct inside domain/struct
-```
-
-#### name.aski — new name domain
-
-```
-TypeParamName        ;; identity of a type parameter
+// _$_@Role
 ```
 
 
@@ -576,9 +581,9 @@ TypeParamName        ;; identity of a type parameter
 Kind is inferred from the enum definition:
 
 ```aski
-(Option (Some $Value) None)            ;; 1 slot: Type -> Type
-(Result (Ok $Output) (Err $Failure))   ;; 2 slots: Type -> Type -> Type
-(Element Fire Earth Air Water)          ;; 0 slots: Type (concrete)
+(Option {$Value} (Some $Value) None)     ;; 1 slot: Type -> Type
+(Result {$Output $Failure} ...)          ;; 2 slots: Type -> Type -> Type
+(Element Fire Earth Air Water)            ;; 0 slots: Type (concrete)
 ```
 
 No explicit kind annotations needed.
@@ -593,33 +598,32 @@ stabilizes it, so that parse-tree shape is fixed early and
 semantic enforcement can be layered on later without breaking
 grammar.
 
-### Binding model
+### Binding model (v0.19)
 
-`'Name` is a third kind of name-relation, sibling to declaration
-and reference:
+Three sigils for source-read identifier roles (synth-level):
 
 | Sigil | Binding   | Role                                    |
 |-------|-----------|-----------------------------------------|
-| `@`   | Declare   | creates a new instance binding          |
-| `:`   | Reference | uses an existing binding by name        |
+| `@`   | Declare   | declares a new named slot (synth only — aski source uses position)  |
+| `:`   | Reference | names an existing label kind (synth only — in aski source `:` is path) |
 | `'`   | Origin    | names a place for lifetime tracking     |
 
 `'Place` always refers to a place that exists in scope — a
 parameter, local, or field path from one of those.
 
-### Three origin forms
+### Three origin forms (v0.19)
 
 ```aski
 ;; 1. Simple place — binding or parameter name
-:'Map@Self
-~'Buffer@Counter U32
+&'Map self
+~&'Buffer counter U32
 
 ;; 2. Field path — any depth
-:'Self.Inner@Ref String
-~'Self.Inner.Deeper@Node
+&'self.Inner ref String
+~&'self.Inner.Deeper node
 
 ;; 3. Union — borrow originated at any of these places
-:'(Left Right)@Node Tree
+&'(Left Right) node Tree
 ```
 
 ### View types — partial-field borrows
@@ -630,24 +634,24 @@ borrows to hold.
 
 ```aski
 ;; shared view: read-only, only these fields visible
-(observe :@Self {| Name Count |} String)
+(observe &self {| Name Count |} String)
 
 ;; mutable view: writable, only this field visible;
 ;; a concurrent shared borrow may still hold the other fields
-(tick ~@Self {| Counter |} U32)
+(tick ~&self {| Counter |} U32)
 ```
 
 ### Grammar position
 
-Origins and view types both attach to a borrow sigil (`:@` or
-`~@`). Order: borrow, then optional origin, then optional view,
+Origins and view types both attach to a borrow sigil (`&` or
+`~&`). Order: borrow, then optional origin, then optional view,
 then instance name. All pieces are positional — no commas, no
 syntactic noise.
 
 ```
-:'Map {| Count |} @Self          ;; origin + view + named self
-:'Map @Foo Type                   ;; origin + named param
-@Plain Type                       ;; no borrow — no origin, no view
+&'Map {| Count |} self          ;; origin + view + self
+&'Map foo Type                   ;; origin + named param
+foo Type                         ;; no borrow — no origin, no view
 ```
 
 See also:
