@@ -1,15 +1,17 @@
-;; pattern.core — match patterns.
+;; pattern.core — match patterns (v0.19).
 ;;
-;; Three grammar forms (Pattern.synth):
-;;   #VariantBind#:Variant _@_@Binding   — match variant, bind payload name
-;;   #VariantMatch#:Variant              — match variant, ignore payload
-;;   #StringMatch#"literal"              — match string literal
+;; Grammar forms (Pattern.synth):
+;;   #VariantBind#  :Variant @binding     — match variant, bind payload
+;;   #VariantAlt#   [ +:Variant ]         — or-pattern (alternatives)
+;;   #VariantMatch# :Variant              — match variant, ignore payload
+;;   #StringMatch#  "literal"             — match string literal
 
 (Pattern Pattern MatchArm MatchExpr)
 
 
 (Pattern
   {VariantBind (Variant VariantName) (Binding BindingName)}
+  {VariantAlt (Variants [Vec VariantName])}
   {VariantMatch (Variant VariantName)}
   (StringMatch String))
 

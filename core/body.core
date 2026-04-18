@@ -1,9 +1,8 @@
-;; body.core — method bodies, blocks, loops, iterations, struct-construct.
+;; body.core — method bodies, blocks, loops, iterations, struct-construct (v0.19).
 ;;
-;; Body is one of five forms per Method.synth's alternatives.
-;; Block is the sequential-statements-with-tail-expr form.
-;; Loop has two variants (conditional vs infinite).
-;; Iteration carries a source expression + binding + inner Body.
+;; Loop unified: single struct with required Condition (Option'd
+;; at the sema level for infinite-loop cases via `while true` pattern
+;; expressed in source). No InfiniteLoop variant in v0.19.
 
 (Body Body Block Loop Iteration StructConstruct)
 
@@ -21,9 +20,9 @@
   (Tail [Option [Box Expr]])}
 
 
-(Loop
-  {ConditionalLoop (Condition [Box Expr]) (Body [Vec Statement])}
-  {InfiniteLoop (Body [Vec Statement])})
+{Loop
+  (Condition [Box Expr])
+  (Body [Vec Statement])}
 
 
 {Iteration

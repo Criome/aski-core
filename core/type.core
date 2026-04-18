@@ -1,28 +1,24 @@
-;; type.core — type expressions (enum-first).
+;; type.core — type expressions (enum-first, v0.19).
 ;;
-;; Matches Type.synth's six alternatives directly. Every type is
-;; one variant. References to other types are by TypeName (or
-;; GenericName for $X). Borrowed types carry optional Origin and
-;; view restriction — lifetime-awareness everywhere Type appears.
+;; Matches Type.synth's alternatives directly. InstanceType retired
+;; in v0.19 — without the @ sigil there's no syntactic distinction
+;; from AppliedType.
 
 (Type Type TypeApplication GenericParam TraitBound)
 
 
 (Type
-  ;; #BorrowedType#   `:@[ ... ]` — optional origin, optional view
+  ;; #BorrowedType#   `&{ ... }` — optional origin, optional view
   {Borrowed (Origin [Option Origin])
             (ViewFields [Vec FieldName])
             (Inner TypeApplication)}
 
-  ;; #MutBorrowedType# `~@[ ... ]`
+  ;; #MutBorrowedType# `~&{ ... }`
   {MutBorrowed (Origin [Option Origin])
                (ViewFields [Vec FieldName])
                (Inner TypeApplication)}
 
-  ;; #InstanceType#    `@[ ... ]` — marks an instance-position type
-  (InstanceType TypeApplication)
-
-  ;; #AppliedType#     `[ ... ]` — applied type constructor
+  ;; #AppliedType#     `{ ... }` — applied type constructor
   (AppliedType TypeApplication)
 
   ;; #GenericParamType# `$X` — generic parameter reference

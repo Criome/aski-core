@@ -1,11 +1,12 @@
 ;; module.core — Module root, imports, exports, visibility.
 ;;
-;; Module is the root of a .aski file. It carries imports
-;; (namespaced by source module), exports (flat lists of names
-;; this module publishes), and one of each root-level entity
-;; kind grouped by kind.
+;; v0.19: flat exports/imports. Under the new case rule, every
+;; module-level exportable thing is Pascal (enums, structs,
+;; newtypes, traits, consts all share the structural space), so
+;; exports and imports collapse to single lists of names. veric
+;; resolves each to its declaration kind.
 
-(Module Module Import Export Visibility)
+(Module Module Import Visibility)
 
 
 (Visibility Public Private)
@@ -13,20 +14,14 @@
 
 {Import
   (Source ModuleName)
-  (Objects [Vec TypeName])     ;; @ObjectImport — PascalCase imports
-  (Actions [Vec MethodName])}  ;; @actionImport — camelCase imports
-
-
-(Export
-  (Object TypeName)            ;; @ObjectExport Foo
-  (Action MethodName))         ;; @actionExport bar
+  (Names [Vec TypeName])}
 
 
 {Module
   (Name ModuleName)
   (Visibility Visibility)
   (Imports [Vec Import])
-  (Exports [Vec Export])
+  (Exports [Vec TypeName])
   (Enums [Vec Enum])
   (Structs [Vec Struct])
   (Newtypes [Vec Newtype])

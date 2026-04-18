@@ -1,7 +1,7 @@
-;; trait.core — trait declarations, implementations, methods, signatures.
+;; trait.core — trait declarations, implementations, methods, signatures (v0.19).
 ;;
-;; TraitDecl lists named signatures; TraitImpl provides named methods
-;; for a specific type. Method = Signature + Body.
+;; Traits are Pascal under v0.19. SuperTraits field retired (no v0.19
+;; syntax yet); will be reintroduced alongside super-trait syntax.
 
 (Trait TraitDecl TraitImpl Method Signature NamedSignature NamedMethod)
 
@@ -10,11 +10,10 @@
   (Name TraitName)
   (Visibility Visibility)
   (Generics [Vec GenericParam])
-  (SuperTraits [Vec TraitBound])
   (Signatures [Vec NamedSignature])}
 
 {NamedSignature
-  (Name MethodName)              ;; @sigName in the grammar
+  (Name MethodName)
   (Signature Signature)}
 
 
