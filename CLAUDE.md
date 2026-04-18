@@ -10,7 +10,7 @@ Rust with rkyv derives from the `.core` definitions.
 corec       — .core → Rust with rkyv derives (bootstrap tool)
 synth-core  — grammar contract (askicc↔askic)
 aski-core   — parse tree contract (askic↔veric↔semac) — THIS REPO + spec docs
-sema-core   — veric-output contract (veric↔semac)
+veri-core   — veric-output contract (veric↔semac)
 askicc      — source/<surface>/*.synth → dsls.rkyv
 askic       — reads source + dsls.rkyv → rkyv conforming to aski-core types
 veric       — per-module rkyv → program.rkyv
