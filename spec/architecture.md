@@ -627,7 +627,7 @@ Synth items:
 The Label struct carries: Binding (Declare/Reference) +
 LabelKind (what it is) + Casing (Pascal/Camel). Three bytes.
 
-Keywords: Self, Main. Matched exactly, not declared or referenced.
+Keywords: Self. Matched exactly, not declared or referenced.
 
 
 ## Delimiters Are Context-Dependent
