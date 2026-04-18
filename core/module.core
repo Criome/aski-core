@@ -1,0 +1,36 @@
+;; module.core — Module root, imports, exports, visibility.
+;;
+;; Module is the root of a .aski file. It carries imports
+;; (namespaced by source module), exports (flat lists of names
+;; this module publishes), and one of each root-level entity
+;; kind grouped by kind.
+
+(Module Module Import Export Visibility)
+
+
+(Visibility Public Private)
+
+
+{Import
+  (Source ModuleName)
+  (Objects [Vec TypeName])     ;; @ObjectImport — PascalCase imports
+  (Actions [Vec MethodName])}  ;; @actionImport — camelCase imports
+
+
+(Export
+  (Object TypeName)            ;; @ObjectExport Foo
+  (Action MethodName))         ;; @actionExport bar
+
+
+{Module
+  (Name ModuleName)
+  (Visibility Visibility)
+  (Imports [Vec Import])
+  (Exports [Vec Export])
+  (Enums [Vec Enum])
+  (Structs [Vec Struct])
+  (Newtypes [Vec Newtype])
+  (Consts [Vec Const])
+  (TraitDecls [Vec TraitDecl])
+  (TraitImpls [Vec TraitImpl])
+  (Ffis [Vec Ffi])}

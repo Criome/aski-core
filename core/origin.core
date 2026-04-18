@@ -1,0 +1,19 @@
+;; origin.core — place-based lifetime annotations.
+;;
+;; Three origin forms from Origin.synth:
+;;   #PlaceRef#'PlaceName           — origin at a simple place
+;;   #PlacePath#'PlaceName.:Field.. — origin at a field-path place
+;;   #PlaceUnion#_'_(Origin Origin) — union of origins
+;;
+;; View types (from ViewType.synth) are represented as flat
+;; `[Vec FieldName]` fields embedded directly on the borrow
+;; containers (Param, Type::Borrowed, Expr::BorrowExpr). Empty
+;; vec = full access; non-empty = restricted view.
+
+(Origin Origin)
+
+
+(Origin
+  {PlaceRef (Place PlaceName)}
+  {PlacePath (Place PlaceName) (Fields [Vec FieldName])}
+  {PlaceUnion (Origins [Vec Origin])})

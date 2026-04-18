@@ -1,45 +1,31 @@
-;; statement.aski — statement domains
+;; statement.core — method-body statements.
+;;
+;; Matches Statement.synth's alternatives. Instance and Mutation
+;; are the targets of _@_ / _~__@_ dispatches (declaration and
+;; mutating method-call forms).
 
-(Statement Statement LetBinding Instance Mutation LoopExpr Iteration)
-
-
-{LetBinding
-  (Pattern Pattern)
-  (Mutable Bool)
-  (TypeAnnotation [Option TypeExpr])
-  (Value [Box Expr])
-  Span}
-
-{Instance
-  (Name TypeName)
-  (TypeAnnotation [Option TypeExpr])
-  (Value [Box Expr])
-  Span}
-
-{Mutation
-  (Name TypeName)
-  (Method MethodName)
-  (Args [Vec Expr])
-  Span}
-
-{LoopExpr
-  (Condition [Option [Box Expr]])
-  (Body Block)}
-
-{Iteration
-  (Binding Pattern)
-  (Source [Box Expr])
-  (Body Block)}
+(Statement Statement Instance Mutation)
 
 
 (Statement
-  (Let LetBinding)
-  (Expr [Box Expr])
   (EarlyReturn [Box Expr])
-  ReturnUnit
-  (Loop LoopExpr)
-  {While (Condition [Box Expr]) (Body Block) Span}
+  {WhileLoop (Condition [Box Expr]) (Body Body)}
+  (InfiniteLoop Body)
   (Iteration Iteration)
-  {LocalTypeDecl (Name TypeName) (Type TypeExpr) Span}
-  (Mutation Mutation)
-  (Instance Instance))
+  {LocalTypeDecl (Name InstanceName) (Type Type)}
+  (MutationStmt Mutation)
+  (InstanceStmt Instance)
+  (ExprStmt [Box Expr]))
+
+
+;; Instance: #TypedInstance# has a type annotation, #UntypedInstance# doesn't
+(Instance
+  {TypedInstance (Name InstanceName) (Type Type) (Value [Box Expr])}
+  {UntypedInstance (Name InstanceName) (Value [Box Expr])})
+
+
+;; Mutation: ~@Name.method(args) — a mutating method call on a named target
+{Mutation
+  (Target InstanceName)
+  (Method MethodName)
+  (Args [Vec Expr])}

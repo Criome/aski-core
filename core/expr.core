@@ -1,84 +1,54 @@
-;; expr.aski — expression domains
+;; expr.core — expressions.
 ;;
-;; Every kind of Rust expression. Each variant maps to
-;; exactly one Rust codegen pattern.
+;; One variant per grammar #Tag#, matching ExprAtom/ExprPostfix
+;; and the binary-op chains directly. No free-functions; every
+;; piece of an expression has a typed home.
 
 (Expr Expr FieldInit)
+
+
+(Expr
+  ;; Binary operators (ExprOr..ExprMul chain, one variant per tag)
+  {BinOr (Left [Box Expr]) (Right [Box Expr])}
+  {BinAnd (Left [Box Expr]) (Right [Box Expr])}
+  {BinEq (Left [Box Expr]) (Right [Box Expr])}
+  {BinNotEq (Left [Box Expr]) (Right [Box Expr])}
+  {BinLt (Left [Box Expr]) (Right [Box Expr])}
+  {BinGt (Left [Box Expr]) (Right [Box Expr])}
+  {BinLtEq (Left [Box Expr]) (Right [Box Expr])}
+  {BinGtEq (Left [Box Expr]) (Right [Box Expr])}
+  {BinAdd (Left [Box Expr]) (Right [Box Expr])}
+  {BinSub (Left [Box Expr]) (Right [Box Expr])}
+  {BinMul (Left [Box Expr]) (Right [Box Expr])}
+  {BinMod (Left [Box Expr]) (Right [Box Expr])}
+
+  ;; Postfix operators (ExprPostfix)
+  {FieldAccess (Object [Box Expr]) (Field FieldName)}
+  {MethodCall (Object [Box Expr]) (Method MethodName) (Args [Vec Expr])}
+  (TryUnwrap [Box Expr])
+
+  ;; Atom expressions (ExprAtom)
+  {InstanceRef (Name InstanceName)}
+  {BorrowExpr (Origin [Option Origin])
+              (ViewFields [Vec FieldName])
+              (Target InstanceName)}
+  {MutBorrowExpr (Origin [Option Origin])
+                 (ViewFields [Vec FieldName])
+                 (Target InstanceName)}
+  {BareVariant (Name VariantName)}
+  {PathVariant (Type TypeName) (Variant VariantName)}
+  {PathCall (Type TypeName) (Method MethodName) (Args [Vec Expr])}
+  (LiteralExpr LiteralValue)
+  (InlineEval Block)
+  (MatchExpr MatchExpr)
+  (LoopExpr Loop)
+  (IterExpr Iteration)
+  {StructExpr (Type TypeName) (Fields [Vec FieldInit])}
+
+  ;; Early return is also an expression (via ^ in ExprPostfix context)
+  (EarlyReturn [Box Expr]))
 
 
 {FieldInit
   (Name FieldName)
   (Value [Box Expr])}
-
-
-(Expr
-  ;; literals
-  {IntLit (Value I64) Span}
-  {FloatLit (Value F64) Span}
-  {StringLit (Value String) Span}
-  {BoolLit (Value Bool) Span}
-  {CharLit (Value U32) Span}
-  UnitLit
-
-  ;; binary — arithmetic
-  {BinAdd (Left [Box Expr]) (Right [Box Expr]) Span}
-  {BinSub (Left [Box Expr]) (Right [Box Expr]) Span}
-  {BinMul (Left [Box Expr]) (Right [Box Expr]) Span}
-  {BinDiv (Left [Box Expr]) (Right [Box Expr]) Span}
-  {BinMod (Left [Box Expr]) (Right [Box Expr]) Span}
-
-  ;; binary — comparison
-  {BinEq (Left [Box Expr]) (Right [Box Expr]) Span}
-  {BinNotEq (Left [Box Expr]) (Right [Box Expr]) Span}
-  {BinLt (Left [Box Expr]) (Right [Box Expr]) Span}
-  {BinGt (Left [Box Expr]) (Right [Box Expr]) Span}
-  {BinLtEq (Left [Box Expr]) (Right [Box Expr]) Span}
-  {BinGtEq (Left [Box Expr]) (Right [Box Expr]) Span}
-
-  ;; binary — logical
-  {BinAnd (Left [Box Expr]) (Right [Box Expr]) Span}
-  {BinOr (Left [Box Expr]) (Right [Box Expr]) Span}
-
-  ;; unary
-  {UnaryNeg (Inner [Box Expr]) Span}
-  {UnaryNot (Inner [Box Expr]) Span}
-  {UnaryDeref (Inner [Box Expr]) Span}
-  {UnaryBorrow (Inner [Box Expr]) Span}
-  {UnaryBorrowMut (Inner [Box Expr]) Span}
-
-  ;; access
-  {FieldAccess (Object [Box Expr]) (Field FieldName) Span}
-  {MethodCall (Object [Box Expr]) (Method MethodName) (Args [Vec Expr]) Span}
-  {TryUnwrap (Inner [Box Expr]) Span}
-
-  ;; calls
-  {PathCall (Type TypeName) (Method MethodName) (Args [Vec Expr]) Span}
-
-  ;; path expressions
-  {InstanceRef (Name TypeName) Span}
-  {SelfRef Span}
-  {BareVariant (Variant VariantName) Span}
-  {PathVariant (Type TypeName) (Variant VariantName) Span}
-  {PathVariantData (Type TypeName) (Variant VariantName) (Payload [Box Expr]) Span}
-
-  ;; construction
-  {StructConstruct (Type TypeName) (Fields [Vec FieldInit]) Span}
-  {TupleExpr (Elements [Vec Expr]) Span}
-  {ArrayExpr (Elements [Vec Expr]) Span}
-
-  ;; block
-  (InlineEval Block)
-
-  ;; control flow as expressions
-  (Match MatchExpr)
-  (Loop LoopExpr)
-  (Iteration Iteration)
-
-  ;; return/break
-  (EarlyReturn [Box Expr])
-  ReturnUnit
-  (Break [Option [Box Expr]])
-  Continue
-
-  ;; cast
-  {CastExpr (Inner [Box Expr]) (Target TypeExpr) Span})

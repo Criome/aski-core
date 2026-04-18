@@ -1,43 +1,45 @@
-;; type.aski — type expression domains
+;; type.core — type expressions (enum-first).
 ;;
-;; Every position where a type can appear in Rust.
-;; Each variant maps to exactly one Rust codegen pattern.
-;;
-;; Leaf types first (Rust declaration order).
+;; Matches Type.synth's six alternatives directly. Every type is
+;; one variant. References to other types are by TypeName (or
+;; GenericName for $X). Borrowed types carry optional Origin and
+;; view restriction — lifetime-awareness everywhere Type appears.
 
-(Type TypeExpr TypeApplication TraitBound GenericParamDef)
+(Type Type TypeApplication GenericParam TraitBound)
+
+
+(Type
+  ;; #BorrowedType#   `:@[ ... ]` — optional origin, optional view
+  {Borrowed (Origin [Option Origin])
+            (ViewFields [Vec FieldName])
+            (Inner TypeApplication)}
+
+  ;; #MutBorrowedType# `~@[ ... ]`
+  {MutBorrowed (Origin [Option Origin])
+               (ViewFields [Vec FieldName])
+               (Inner TypeApplication)}
+
+  ;; #InstanceType#    `@[ ... ]` — marks an instance-position type
+  (InstanceType TypeApplication)
+
+  ;; #AppliedType#     `[ ... ]` — applied type constructor
+  (AppliedType TypeApplication)
+
+  ;; #GenericParamType# `$X` — generic parameter reference
+  (GenericParamType GenericParam)
+
+  ;; `:Type` — plain named reference (no application, no borrow)
+  (Named TypeName))
 
 
 {TypeApplication
   (Constructor TypeName)
-  (Args [Vec TypeExpr])}
+  (Args [Vec Type])}
+
+{GenericParam
+  (Name GenericName)
+  (Bounds [Vec TraitBound])}
 
 {TraitBound
   (Trait TraitName)
-  (Args [Vec TypeExpr])}
-
-{GenericParamDef
-  (Name TypeParamName)
-  (Bounds [Vec TraitBound])
-  (Default [Option TypeExpr])}
-
-
-(TypeExpr
-  (Named TypeName)
-  SelfType
-  (Application TypeApplication)
-  (Param TypeParamName)
-  {BoundedParam (Bounds [Vec TypeName])}
-  {Ref (Inner [Box TypeExpr])}
-  {MutRef (Inner [Box TypeExpr])}
-  (Boxed [Box TypeExpr])
-  {Tuple (Elements [Vec TypeExpr])}
-  Unit
-  {Array (Element [Box TypeExpr]) (Size U64)}
-  {Slice (Element [Box TypeExpr])}
-  {FnPtr (Params [Vec TypeExpr]) (Return [Box TypeExpr])}
-  Never
-  {DynTrait (Bounds [Vec TraitBound])}
-  {ImplTrait (Bounds [Vec TraitBound])}
-  (InstanceRef TypeApplication)
-  {QualifiedPath (Base [Box TypeExpr]) (Segment TypeName)})
+  (Args [Vec Type])}

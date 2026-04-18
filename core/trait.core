@@ -1,48 +1,40 @@
-;; trait.aski — trait declaration and implementation domains
+;; trait.core — trait declarations, implementations, methods, signatures.
+;;
+;; TraitDecl lists named signatures; TraitImpl provides named methods
+;; for a specific type. Method = Signature + Body.
 
-(Trait TraitDeclDef TraitImplDef AssociatedTypeDef AssociatedTypeImpl
-       MethodSig MethodDef)
-
-
-{AssociatedTypeDef
-  (Name TypeName)
-  (Bounds [Vec TraitBound])
-  (Default [Option TypeExpr])}
-
-{AssociatedTypeImpl
-  (Name TypeName)
-  (Type TypeExpr)}
-
-{MethodSig
-  (Name MethodName)
-  (GenericParams [Vec GenericParamDef])
-  (Params [Vec Param])
-  (ReturnType [Option TypeExpr])
-  Span}
-
-{MethodDef
-  (Name MethodName)
-  (GenericParams [Vec GenericParamDef])
-  (Params [Vec Param])
-  (ReturnType [Option TypeExpr])
-  (Body MethodBody)
-  Span}
+(Trait TraitDecl TraitImpl Method Signature NamedSignature NamedMethod)
 
 
-{TraitDeclDef
+{TraitDecl
   (Name TraitName)
   (Visibility Visibility)
-  (GenericParams [Vec GenericParamDef])
+  (Generics [Vec GenericParam])
   (SuperTraits [Vec TraitBound])
-  (AssociatedTypes [Vec AssociatedTypeDef])
-  (Signatures [Vec MethodSig])
-  Span}
+  (Signatures [Vec NamedSignature])}
 
-{TraitImplDef
+{NamedSignature
+  (Name MethodName)              ;; @sigName in the grammar
+  (Signature Signature)}
+
+
+{TraitImpl
   (Trait TraitName)
-  (TraitArgs [Vec TypeExpr])
-  (Type TypeExpr)
-  (GenericParams [Vec GenericParamDef])
-  (Methods [Vec MethodDef])
-  (AssociatedTypes [Vec AssociatedTypeImpl])
-  Span}
+  (TraitArgs [Vec Type])
+  (Target Type)
+  (Generics [Vec GenericParam])
+  (Methods [Vec NamedMethod])}
+
+{NamedMethod
+  (Name MethodName)
+  (Method Method)}
+
+
+{Method
+  (Signature Signature)
+  (Body [Box Body])}
+
+{Signature
+  (Generics [Vec GenericParam])
+  (Params [Vec Param])
+  (ReturnType [Option Type])}

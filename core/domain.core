@@ -1,0 +1,79 @@
+;; domain.core — data-definition entities (enum, struct, newtype, const, ffi).
+;;
+;; A **domain** is any data-definition — the overarching concept
+;; covering Enum (one-of), Struct (all-of), Newtype (wrapping).
+;; Per design.md §33.
+;;
+;; These are the typed entities askic produces from Root.synth's
+;; #Enum#, #Struct#, #Newtype#, #Const#, #Ffi# alternatives.
+
+(Domain
+  Enum EnumChild
+  Struct StructChild Field
+  Newtype Const Ffi FfiFunction)
+
+
+;; ── Enum ─────────────────────────────────────────────────────
+
+{Enum
+  (Name EnumName)
+  (Visibility Visibility)
+  (Generics [Vec GenericParam])
+  (Children [Vec EnumChild])}
+
+(EnumChild
+  {BareVariant (Name VariantName)}
+  {DataVariant (Name VariantName) (Payload Type)}
+  {StructVariant (Name VariantName) (Fields [Vec Field])}
+  (NestedEnum Enum)
+  (NestedStruct Struct))
+
+
+;; ── Struct ───────────────────────────────────────────────────
+
+{Struct
+  (Name StructName)
+  (Visibility Visibility)
+  (Generics [Vec GenericParam])
+  (Children [Vec StructChild])}
+
+(StructChild
+  (TypedField Field)
+  {SelfTypedField (Name FieldName) (Visibility Visibility)}
+  (NestedEnum Enum)
+  (NestedStruct Struct))
+
+{Field
+  (Name FieldName)
+  (Visibility Visibility)
+  (Type Type)}
+
+
+;; ── Newtype ──────────────────────────────────────────────────
+
+{Newtype
+  (Name NewtypeName)
+  (Visibility Visibility)
+  (Generics [Vec GenericParam])
+  (Wraps Type)}
+
+
+;; ── Const ────────────────────────────────────────────────────
+
+{Const
+  (Name ConstName)
+  (Visibility Visibility)
+  (Type Type)
+  (Value LiteralValue)}
+
+
+;; ── Ffi ──────────────────────────────────────────────────────
+
+{Ffi
+  (Name FfiName)
+  (Visibility Visibility)
+  (Functions [Vec FfiFunction])}
+
+{FfiFunction
+  (Name MethodName)
+  (Signature Signature)}

@@ -1,0 +1,39 @@
+;; param.core — method parameter.
+;;
+;; Nested variants per borrow kind, per Self vs Named.
+;; Borrows carry optional Origin and optional view-field list.
+;; Self + Named × Owned/Borrowed/MutBorrowed = 7 variants
+;; (Named-Bare is 8th: no type annotation).
+
+(Param Param)
+
+
+(Param
+  OwnedSelf
+
+  {BorrowedSelf
+    (Origin [Option Origin])
+    (ViewFields [Vec FieldName])}
+
+  {MutBorrowedSelf
+    (Origin [Option Origin])
+    (ViewFields [Vec FieldName])}
+
+  {OwnedNamed
+    (Name ParamName)
+    (Type Type)}
+
+  {BorrowedNamed
+    (Name ParamName)
+    (Type Type)
+    (Origin [Option Origin])
+    (ViewFields [Vec FieldName])}
+
+  {MutBorrowedNamed
+    (Name ParamName)
+    (Type Type)
+    (Origin [Option Origin])
+    (ViewFields [Vec FieldName])}
+
+  {BareNamed
+    (Name ParamName)})

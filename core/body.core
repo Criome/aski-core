@@ -1,24 +1,37 @@
-;; body.aski — body, block, method body, and parameter domains
+;; body.core — method bodies, blocks, loops, iterations, struct-construct.
+;;
+;; Body is one of five forms per Method.synth's alternatives.
+;; Block is the sequential-statements-with-tail-expr form.
+;; Loop has two variants (conditional vs infinite).
+;; Iteration carries a source expression + binding + inner Body.
 
-(Body Block MethodBody Param)
+(Body Body Block Loop Iteration StructConstruct)
+
+
+(Body
+  (BlockBody Block)
+  (MatchBody MatchExpr)
+  (LoopBody Loop)
+  (IterBody Iteration)
+  (StructBody StructConstruct))
 
 
 {Block
   (Statements [Vec Statement])
   (Tail [Option [Box Expr]])}
 
-(MethodBody
-  (Block Block)
-  (Match MatchExpr)
-  (Loop LoopExpr)
-  (Iteration Iteration)
-  {StructConstruct (Type TypeName) (Fields [Vec FieldInit]) Span})
 
-(Param
-  BorrowSelf
-  MutBorrowSelf
-  OwnedSelf
-  {BorrowNamed (Name TypeName) (Type TypeExpr)}
-  {MutBorrowNamed (Name TypeName) (Type TypeExpr)}
-  {Named (Name TypeName) (Type TypeExpr)}
-  {Bare (Name TypeName)})
+(Loop
+  {ConditionalLoop (Condition [Box Expr]) (Body [Vec Statement])}
+  {InfiniteLoop (Body [Vec Statement])})
+
+
+{Iteration
+  (Source [Box Expr])
+  (Binding BindingName)
+  (Body [Box Body])}
+
+
+{StructConstruct
+  (Type TypeName)
+  (Fields [Vec FieldInit])}
