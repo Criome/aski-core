@@ -584,46 +584,93 @@ Kind is inferred from the enum definition:
 No explicit kind annotations needed.
 
 
-## Origins (Reserved)
+## Origins — Place-Based Lifetime Annotations
 
-The `'` sigil is reserved for **origin annotations** — aski's
-forward-compatibility slot for Rust's place-based lifetime syntax
-(the user-facing part of the Polonius/place-types roadmap).
+The `'` sigil marks an **origin**: the place from which a borrow's
+loan came. Aski adopts the user-facing form of Rust's place-based
+lifetime syntax (Polonius + view-types roadmap) before Rust
+stabilizes it, so that parse-tree shape is fixed early and
+semantic enforcement can be layered on later without breaking
+grammar.
 
-No semantics are assigned today. Rust itself has not merged an RFC
-for place-based lifetime syntax; committing to specifics would lock
-us in before the underlying language does. Reserving the sigil
-guarantees v0.18 grammar doesn't paint into a corner.
+### Binding model
 
-When origins land in Rust, aski will spell them as `'Place` attached
-to a borrow. Provisional shape:
+`'Name` is a third kind of name-relation, sibling to declaration
+and reference:
+
+| Sigil | Binding   | Role                                    |
+|-------|-----------|-----------------------------------------|
+| `@`   | Declare   | creates a new instance binding          |
+| `:`   | Reference | uses an existing binding by name        |
+| `'`   | Origin    | names a place for lifetime tracking     |
+
+`'Place` always refers to a place that exists in scope — a
+parameter, local, or field path from one of those.
+
+### Three origin forms
 
 ```aski
-;; plain borrow, no origin (today's syntax)
-:@Self
-
-;; borrow with origin — reads "borrow of Self, originating at Map"
+;; 1. Simple place — binding or parameter name
 :'Map@Self
+~'Buffer@Counter U32
 
-;; field-path origin (Rust's 'self.model equivalent)
-:'Self/Model@Name
+;; 2. Field path — any depth
+:'Self.Inner@Ref String
+~'Self.Inner.Deeper@Node
 
-;; view-type / partial-field borrow — reuse {| |}
-~@Self {| Counter |}
+;; 3. Union — borrow originated at any of these places
+:'(Left Right)@Node Tree
 ```
 
-These are placeholders. Semantics, exact grammar position, and
-the view-type form will be pinned down when Rust's feature stabilizes.
+### View types — partial-field borrows
 
-Until then:
-- `'` appears in no other sigil, position, or grammar slot.
-- Param.synth, Type.synth, Instance.synth do not use `'`.
-- askicc does not lex `'`; any use in source is a hard error
-  (reserved for origins).
+The `{| Field ... |}` delim after a borrow restricts the view to
+exactly the named fields. Other fields remain free for concurrent
+borrows to hold.
 
-Eventually — once Rust origins stabilize and aski pins down the
-semantics — lifetime tests will verify:
+```aski
+;; shared view: read-only, only these fields visible
+(observe :@Self {| Name Count |} String)
+
+;; mutable view: writable, only this field visible;
+;; a concurrent shared borrow may still hold the other fields
+(tick ~@Self {| Counter |} U32)
+```
+
+### Grammar position
+
+Origins and view types both attach to a borrow sigil (`:@` or
+`~@`). Order: borrow, then optional origin, then optional view,
+then instance name. All pieces are positional — no commas, no
+syntactic noise.
+
+```
+:'Map {| Count |} @Self          ;; origin + view + named self
+:'Map @Foo Type                   ;; origin + named param
+@Plain Type                       ;; no borrow — no origin, no view
+```
+
+See also:
+- `aski/Origin.synth` — `'Place`, `'Place.Field`, `'(A B)` forms
+- `aski/FieldPath.synth` — recursive `.Field` chain
+- `aski/ViewType.synth` — `{| Field ... |}` shape
+- `aski/Param.synth` — where origins + views plug into params
+
+### Semantic status
+
+v0.18 **accepts the syntax into the parse tree**. Origins and
+view types are captured as typed nodes (`PlaceRef`, `PlacePath`,
+`PlaceUnion`, `ViewType`), but veric/semac do not yet enforce
+origin correctness. Enforcement arrives with rsc (Rust
+projection) once Rust's Polonius/view-types stabilize enough
+for aski to emit correct Rust. Until then, writing origins
+is optional documentation.
+
+### Future lifetime tests
+
+When semantic enforcement lands, tests verify:
 - origin propagation across function boundaries
-- view types vs full borrows
-- that aski's `:` / `~@` / `'` compile to the correct Rust origin
-  annotations in rsc output.
+- that view-type fields are exactly the set accessible through the borrow
+- that concurrent view borrows with disjoint field sets type-check
+- that aski's `:` / `~@` / `'` compile to Rust `&` / `&mut` / `'place`
+  in rsc output.

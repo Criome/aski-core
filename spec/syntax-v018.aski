@@ -9,7 +9,7 @@
 ;;   ~ = mutable         $ = type parameter
 ;;   ^ = early return     ? = try-unwrap (postfix)
 ;;   & = trait combinator / = path (Type/Variant)
-;;   ' = origin (reserved, not yet assigned — see design.md §Origins)
+;;   ' = origin (place-based lifetime — see design.md §Origins)
 ;;
 ;; Aski root delimiters (v0.18):
 ;;   ()      Module (first, required), Enum, TraitDecl
@@ -325,4 +325,57 @@
 
 [transform Items [
   (nameList :@Self [Vec String] {| @Self.List.Item [@Item.Name] |})
+]]
+
+
+;; =============================================================
+;; ORIGINS — place-based lifetime annotations
+;; =============================================================
+;;
+;; 'Place after : or ~ names where the borrow's loan came from.
+;; Syntactic-only in v0.18; semantic enforcement arrives with rsc.
+
+;; Simple origin — borrow of Self, originating at Map
+[cache LookupTable [
+  (get :'Map@Self @Key String String)
+]]
+
+;; Field-path origin — Rust's 'self.inner equivalent
+[inspector Tree [
+  (leftmost :'Self.Left@Self String)
+]]
+
+;; Union origin — borrow could come from either place
+[merge Rope [
+  (concat :'(Left Right)@Node Rope)
+]]
+
+
+;; =============================================================
+;; VIEW TYPES — partial-field borrows
+;; =============================================================
+;;
+;; {| Field ... |} after a borrow restricts access to these fields.
+;; Other fields stay free for concurrent borrows.
+
+{Counter (Count U32) (Name String)}
+
+[tick Counter [
+  ;; Mutable view of Count only — Name remains borrowable elsewhere
+  (tick ~@Self {| Count |} U32 [
+    ~@Self.Count.set(@Self.Count + 1)
+    @Self.Count
+  ])
+]]
+
+[observe Counter [
+  ;; Shared view of both fields — read-only, disjoint views co-exist
+  (summary :@Self {| Count Name |} String [
+    StringFormat/combine(@Self.Name @Self.Count)
+  ])
+]]
+
+[combined Counter [
+  ;; Origin AND view together
+  (from :'Table{| Count |}@Self U32 @Self.Count)
 ]]

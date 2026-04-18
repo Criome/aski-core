@@ -151,6 +151,24 @@ camelCase `@name` reads a camelCase identifier.
 @trait           ;; reads a camelCase name, declares it
 ```
 
+### Reference — `:Name` or `:name`
+
+Reads a token that must name something already in scope.
+Casing rules match `@`.
+
+### Origin — `'Name`
+
+Reads a place-name identifier for lifetime tracking. Third sibling
+to Declare (`@`) and Reference (`:`). See design.md §Origins.
+
+```synth
+'PlaceName       ;; reads a PascalCase place (parameter/binding/field)
+```
+
+Labels carry a `Binding` enum (`Declare` / `Reference` / `Origin`),
+a `LabelKind` (field role — `ModuleName`, `PlaceName`, `Instance`, …),
+and a `Casing` (`Pascal` / `Camel`). All three are orthogonal.
+
 ### Tag — `#Name#`
 
 Names the TYPE of the output node. Does NOT read a source
