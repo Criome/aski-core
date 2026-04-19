@@ -120,9 +120,9 @@
 ;; TRAIT IMPLEMENTATIONS
 ;; =============================================================
 
-;; Generic impl — {$T} slot right after the trait name
-[Process {$T} Container [
-  (transform &self &items {Vec $T} {Vec $T} [
+;; Generic impl — {$Value} slot right after the trait name
+[Process {$Value} Container [
+  (transform &self &items {Vec $Value} {Vec $Value} [
     items
   ])
 ]]
