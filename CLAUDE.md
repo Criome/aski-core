@@ -37,7 +37,9 @@ eventually produces sema (via semac) + Rust + `.aski-table.sema`
 - No strings in sema — enum discriminants ARE the bytes
 - No newline significance anywhere in the aski-family
 
-## v0.18 Shape
+## v0.19 Shape
+
+12 .core files (11 v0.18 + program.core new). LocalDecl unified (5 nested variants — Canonical/TypeOnly/TypeInit/Construct/BindExpr replacing Instance/LocalTypeDecl/TypedInstance/UntypedInstance). Loop struct with required Condition (InfiniteLoop retired). Type enum 5 variants (InstanceType retired). Pattern adds VariantAlt. Module.Exports flattened to `Vec<TypeName>`. Program added for exec surface.
 
 Four DSLs (surfaces): core, aski, synth, exec. Each is a grammar
 family. Dialects within a DSL (Body, Statement, Expr, …) are the
@@ -57,7 +59,7 @@ See spec/design.md §Origins.
 ## Key Files
 
 - `spec/design.md` — language design + delimiter allocation
-- `spec/synth.md` — synth grammar spec (with v0.18 additions)
+- `spec/synth.md` — synth grammar spec (with v0.19 additions)
 - `spec/architecture.md` — pipeline + surfaces
 - `spec/syntax-v018.aski` — language reference examples
 
