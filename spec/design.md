@@ -97,11 +97,14 @@ There are no variables in aski. What other languages call a
 
 `(counter U32:new(0))` declares a local type `counter` wrapping
 a `U32` instance. The `()` delimiter at statement position is
-the local-declaration form. The camelCase name marks it as a
-runtime-bound thing (vs. compile-time structural Pascal types).
+the local-declaration form. The camelCase name marks it as an
+actual instance of a type (vs. compile-time structural Pascal
+types).
 
-Locals are camelCase — they are runtime entities. Types they
-wrap, and types they reference, are PascalCase.
+Locals are camelCase — they are actual instances of a type. The
+types they wrap, and types they reference, are PascalCase.
+`counter` (camel) is an instance of `Counter` (Pascal); the two
+names are one entity viewed as instance vs type.
 
 
 ## Names Are Meaningful
@@ -228,23 +231,34 @@ files = variants). NodeKind variants map to synth rules.
 Name classification is defined in `core/name.aski`.
 
 
-## PascalCase and camelCase (v0.19)
+## PascalCase and camelCase
 
 **PascalCase = compile-time structural things** — types, enums,
 structs, newtypes, traits, variants, fields, type parameters,
-modules, consts. The shared structural world.
+modules, consts. The *shapes* — the named pieces of the program's
+structure.
 
-**camelCase = runtime things** — methods, local declarations,
-local references, the `self` keyword. The runtime world.
+**camelCase = actual instances of a type** — local declarations,
+local references, methods invoked against an instance, the `self`
+keyword referring to the current instance, match-arm bindings
+holding a variant payload. The *this-one-right-here* of a given
+shape.
+
+The two are related by identity: `F64` is the type; `f64` is an
+instance of it. `Counter` is the struct; `counter` is one Counter.
+The case of the first letter is how the parser knows which kind of
+thing a name refers to.
 
 This is not convention — it is syntax. The parser distinguishes
 PascalCase from camelCase tokens and dispatches differently.
 
-v0.19 trait flip: traits are now PascalCase (they are categories
-of types — noun-like), not camelCase. Methods remain camel.
-Instance/local flip: locals are now camelCase (runtime-bound
-values). The `@` sigil retires entirely; locals are declared
-inside `()` at statement position and referenced bare.
+Historical note: the current form was established in v0.19 with
+the trait flip (traits moved from camel to Pascal — they are
+categories of types, noun-like) and the instance flip (locals
+moved to camelCase — they are instances, not structural entities).
+The `@` sigil was retired as an instance marker at the same time;
+locals are declared inside `()` at statement position and
+referenced bare.
 
 
 ## Mutable Is Marked
