@@ -414,21 +414,32 @@
   |))
 ]]
 
-;; VariantBind form exists in Pattern.synth as `:Variant @binding`,
-;; but a canonical spec example has not yet been approved. The shape
-;; the grammar permits in source is:
+;; VariantBind form (Pattern.synth: `:Variant @binding`). Source shape:
 ;;
 ;;   ( :Variant @binding ) result-expr
 ;;
 ;; i.e., inside a match arm `( pattern ) expr`, the pattern is a
 ;; Pascal variant reference followed by a camelCase binding name.
-;; Naming the binding: per "Names Are Meaningful" the binding should
-;; describe WHAT the payload IS, not a generic placeholder. For an
-;; `Ok U32` payload, `u32` or a role-specific name like `statusCode`
-;; / `parsedDigit` is right; `value` is a pointer name and forbidden.
 ;;
-;; TODO: add an approved VariantBind example once Li confirms the
-;; preferred shape and naming convention for bound payloads.
+;; The binding name is NOT author's choice — it is determined by the
+;; case rule. A camelCase binding is an *actual instance of a type*,
+;; and its type is the variant's payload. So the binding spells
+;; itself: camelCase-of-the-payload-type-name.
+;;
+;;   Variant declaration            Only valid binding
+;;   -----------------------------  -------------------
+;;   (Ok U32)                        ( Ok u32 )
+;;   (Ok Counter)                    ( Ok counter )
+;;   (Circle F64)                    ( Circle f64 )
+;;   (Circle Radius)                 ( Circle radius )   ;; Radius = newtype
+;;
+;; Any other binding name is ill-typed: `( Ok statusCode )` claims the
+;; payload is an instance of `StatusCode`, which requires StatusCode
+;; to BE the declared payload type. If you want the binding spelled
+;; `statusCode`, push that concept into the type system — declare
+;; `(| StatusCode U32 |)` and make the variant `(Ok StatusCode)`.
+;;
+;; Examples need Li's sign-off before landing in the spec.
 
 ;; Single-variant match acts as if/else over Bool:
 [Lookup Table [
