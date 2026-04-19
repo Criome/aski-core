@@ -41,7 +41,7 @@ eventually produces sema (via semac) + Rust + `.aski-table.sema`
 
 12 .core files. v0.20 changes layered on v0.19:
 - **Visibility**: Module.Exports retired (declaration-local via `@` sigil in grammar).
-- **Module.Ffis retired** — FFI moved to its own `.ffi` surface.
+- **Module.Rfis retired** — RFI moved to its own `.rfi` surface.
 - **Associated types**: TraitDecl.AssociatedTypes + TraitImpl.AssociatedTypeBindings + new AssociatedTypeBinding type.
 - **Type.SelfAssoc** variant added for `self:Item` paths.
 - **Expr.SelfRef** variant added for bare `self` as expression atom.
@@ -79,7 +79,7 @@ corec's parser doesn't understand it yet.
 
 Scheduled for a future session; not blocking current work.
 
-Five DSLs (surfaces, v0.20): core, aski, synth, exec, **ffi** (new).
+Five DSLs (surfaces, v0.20): core, aski, synth, exec, **rfi** (new).
 Each is a grammar family. Dialects within a DSL (Body, Statement,
 Expr, …) are the individual `.synth` files that compose it.
 askicc bundles all five DSLs into one `dsls.rkyv` — a domain-data-tree:

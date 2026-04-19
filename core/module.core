@@ -3,8 +3,8 @@
 ;; v0.20 changes:
 ;;   - Module.Exports retired — visibility is declaration-local
 ;;     via the `@` sigil. Each declaration carries its own Visibility.
-;;   - Module.Ffis retired — FFI declarations live in `.ffi` files
-;;     under the FFI surface, linked externally by veric.
+;;   - Module.Rfis retired — RFI declarations live in `.rfi` files
+;;     under the RFI surface, linked externally by veric.
 
 (Module Module Import Visibility)
 

@@ -54,7 +54,7 @@ file kind:
 - **aski** (`.aski`) — modules, libraries. What askic parses.
 - **synth** (`.synth`) — grammar definitions. What askicc parses.
 - **exec** (`.exec`) — executable programs. What askic runs.
-- **ffi** (`.ffi`) — foreign function interface declarations (v0.20).
+- **rfi** (`.rfi`) — Rust foreign interface declarations (v0.20).
 
 Each surface has its own `Root.synth` and its own dialect
 tree. Surfaces don't share `.synth` files directly — they
@@ -84,7 +84,7 @@ Aski root delimiter allocation (v0.20):
 | `[||]` | **TraitDecl** (v0.20; was FFI) |
 
 Every root construct has a unique opening token — first-token
-decidable. FFI moved to its own `.ffi` surface; see §Surfaces.
+decidable. RFI moved to its own `.rfi` surface; see §Surfaces.
 Process moved to the exec surface. No bare newtypes. No
 fallback rules. The delimiter identifies the construct; the
 `@LabelKind` after it reads the name.
@@ -320,8 +320,8 @@ Examples of the DSL-creation pattern:
 - **exec** (`.exec`) — executable programs, separate from module-
   oriented `.aski`. Process-level constructs don't complicate
   the aski grammar.
-- **ffi** (`.ffi`, v0.20) — foreign function interfaces. FFI
-  declarations moved to their own surface when `[||]` was
+- **rfi** (`.rfi`, v0.20) — Rust foreign interface declarations.
+  Moved to their own surface when `[||]` was
   reclaimed for TraitDecl; gives FFI room to grow with
   target-language specifiers and calling conventions.
 

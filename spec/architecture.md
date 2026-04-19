@@ -144,7 +144,7 @@ Item, ItemContent, Label, Tag, TagKind, LabelKind, DialectKind,
 SurfaceKind, LiteralToken, DelimKind, etc.
 
 **aski-core** defines parse-tree types: Module, Enum, Struct,
-Newtype, Const, Ffi, TraitDecl, TraitImpl, Method, Signature,
+Newtype, Const, Rfi, TraitDecl, TraitImpl, Method, Signature,
 Type, Param, Origin, Expr, Statement, Pattern, Body, etc. — all
 named after what they ARE, not with "Def" suffix.
 
@@ -541,7 +541,7 @@ engine populates at runtime. These domain types are defined
 in `.core` files:
 
 - `aski-core/core/module.core` — Module, Import, Export, Visibility
-- `aski-core/core/domain.core` — Enum, Struct, Newtype, Const, Ffi (and children: Field, FfiFunction, EnumChild, StructChild)
+- `aski-core/core/domain.core` — Enum, Struct, Newtype, Const, Rfi (and children: Field, RfiFunction, EnumChild, StructChild)
 - `aski-core/core/trait.core` — TraitDecl, TraitImpl, Method, Signature, NamedSignature, NamedMethod
 - `aski-core/core/type.core` — Type (enum-first, 6 variants), TypeApplication, GenericParam, TraitBound
 - `aski-core/core/origin.core` — Origin (PlaceRef, PlacePath, PlaceUnion — lifetime annotations)

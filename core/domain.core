@@ -1,16 +1,17 @@
-;; domain.core — data-definition entities (enum, struct, newtype, const, ffi).
+;; domain.core — data-definition entities (enum, struct, newtype, const, rfi).
 ;;
 ;; A **domain** is any data-definition — the overarching concept
 ;; covering Enum (one-of), Struct (all-of), Newtype (wrapping).
 ;; Per design.md §33.
 ;;
 ;; These are the typed entities askic produces from Root.synth's
-;; #Enum#, #Struct#, #Newtype#, #Const#, #Ffi# alternatives.
+;; #Enum#, #Struct#, #Newtype#, #Const# alternatives, plus Rfi
+;; from the RFI surface's Root.synth.
 
 (Domain
   Enum EnumChild
   Struct StructChild Field
-  Newtype Const Ffi FfiFunction)
+  Newtype Const Rfi RfiFunction)
 
 
 ;; ── Enum ─────────────────────────────────────────────────────
@@ -67,13 +68,13 @@
   (Value LiteralValue)}
 
 
-;; ── Ffi ──────────────────────────────────────────────────────
+;; ── Rfi ──────────────────────────────────────────────────────
 
-{Ffi
-  (Name FfiName)
+{Rfi
+  (Name RfiName)
   (Visibility Visibility)
-  (Functions [Vec FfiFunction])}
+  (Functions [Vec RfiFunction])}
 
-{FfiFunction
+{RfiFunction
   (Name MethodName)
   (Signature Signature)}

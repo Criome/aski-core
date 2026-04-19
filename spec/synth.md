@@ -309,7 +309,7 @@ Matches a quoted string token in source:
 // *[@trait <TraitImpl>]
 // *{@Struct <Struct>}
 // *{|@Const <Type> @Literal|}
-// *(|@Ffi <Ffi>|)
+// *(|@Rfi <Rfi>|)
 // ?[|<Process>|]
 // *@Newtype <Type>
 ```

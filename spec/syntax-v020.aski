@@ -6,7 +6,7 @@
 ;;   • Traits: declaration delimiter moved from `(...)` to `[|...|]`
 ;;     to resolve enum/trait first-token conflict. Every root
 ;;     construct now has a unique opening token.
-;;   • FFI: own surface (`.ffi` files). Removed from aski root.
+;;   • RFI: own surface (`.rfi` files). Removed from aski root.
 ;;   • Associated types: trait items can be bare Pascal names
 ;;     (type members) or `(methodName …)` (methods). Impls bind
 ;;     associated types as `(AssociatedName Type)`.
@@ -23,7 +23,7 @@
 ;;   (||)    Newtype
 ;;   [||]    TraitDecl  (new in v0.20 — was FFI)
 ;;
-;; FFI lives in `.ffi` files (ffi surface).
+;; RFI lives in `.rfi` files (rfi surface).
 ;;
 ;; Sigils:
 ;;   @     visibility (public)                          :     path
@@ -334,10 +334,10 @@
 
 
 ;; =============================================================
-;; FFI — own surface (see `.ffi` files)
+;; RFI — own surface (see `.rfi` files)
 ;; =============================================================
 ;;
-;; FFI declarations live in `.ffi` files, e.g., `lexer.ffi`:
+;; RFI declarations live in `.rfi` files, e.g., `lexer.rfi`:
 ;;
 ;;   (Lexer
 ;;     (lex &source String {Vec Token})
@@ -347,5 +347,5 @@
 ;;     (readToString &path String String)
 ;;     (writeString &path String &content String))
 ;;
-;; Aski modules reference FFI groups via imports. veric links
-;; .aski and .ffi translation units at program-level.
+;; Aski modules reference RFI groups via imports. veric links
+;; .aski and .rfi translation units at program-level.

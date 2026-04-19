@@ -32,7 +32,7 @@ name_newtype!(EnumName);
 name_newtype!(StructName);
 name_newtype!(NewtypeName);
 name_newtype!(ConstName);
-name_newtype!(FfiName);
+name_newtype!(RfiName);
 name_newtype!(TraitName);
 
 // Sub-entity names
