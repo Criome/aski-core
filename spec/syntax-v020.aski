@@ -34,13 +34,42 @@
 
 
 ;; =============================================================
-;; MODULE
+;; MODULE & IMPORTS
 ;; =============================================================
 
 ;; Module header: name + imports only. No exports list.
-;; Visibility is declaration-local.
+;; Visibility is declaration-local (the `@` prefix on declarations).
 
+;; Minimal — no imports
+(Units)
+
+;; With one import (single source, multiple names)
 (Elements [Core ParseState Token])
+
+;; Multiple imports — each `[Source Names...]` is one Import node
+(Parser
+  [Core ParseState Token]
+  [Lexer CharClass Span]
+  [Text String CharIterator])
+
+
+;; =============================================================
+;; LITERALS
+;; =============================================================
+
+;; Every literal form at expression or const position.
+;; Lexer-classified; LiteralValue carries the value.
+
+(pi F64 3.14159)                 ;; Float
+(year U32 2026)                  ;; Int (decimal)
+(greeting String "hello")        ;; Str
+(active Bool True)               ;; Bool — match-on-variants style
+(empty Unit Unit)                ;; Unit — zero-info value
+
+;; Signed and unsigned primitives infer from declared type.
+(offset I32 -42)                 ;; Int (negative — see UNARY-OPS)
+(ratio F64 0.25)
+(multiLine String "line one\nline two")
 
 
 ;; =============================================================
@@ -49,23 +78,35 @@
 
 ;; @ makes the enum public; without @ the enum is module-private.
 
-@(Element Fire Earth Air Water)
+@(Element Fire Earth Air Water)                  ;; BareVariant × 4
 @(Modality Cardinal Fixed Mutable)
-(InternalState Loading Ready Done)        ;; private
+(InternalState Loading Ready Done)                ;; private
 
-;; data-carrying variants
-@(Shape (Circle F64) {Rectangle (Width F64) (Height F64)} (Triangle F64))
+;; DataVariant (variant with one typed payload) + StructVariant
+;; (variant with named fields wrapped in {}):
+@(Shape
+  (Circle F64)                                    ;; DataVariant
+  {Rectangle (Width F64) (Height F64)}            ;; StructVariant
+  (Triangle F64))
 
-;; generic enum
+;; Generic enum — slot `{$Name ...}` after the enum name:
 @(Option {$Value} (Some $Value) None)
 @(Result {$Output $Failure} (Ok $Output) (Err $Failure))
 
-;; nested enum inside enum
+;; NestedEnum (| ... |) inside an enum body — inner enum scoped
+;; under the outer name (access: Token.Delimiter.LParen).
 @(Token
   (Ident String)
   (Number I64)
   (| Delimiter LParen RParen LBracket RBracket LBrace RBrace |)
   Newline)
+
+;; NestedStruct {| ... |} inside an enum body — inner struct scoped
+;; under the outer name (access: Event.Config).
+@(Event
+  Ping
+  (Retry U32)
+  {| Config (Timeout U32) (MaxRetries U32) |})
 
 
 ;; =============================================================
@@ -101,6 +142,13 @@
 
 ;; self-typed field — field IS the type, terse form
 @{Drawing (@Shapes {Vec Shape}) @Name}
+
+;; NestedEnum and NestedStruct inside a struct body (same delimiters
+;; as inside enum body; scope: Page.Orientation, Page.Margin).
+@{Page
+  (@Content String)
+  (| Orientation Portrait Landscape |)            ;; NestedEnum
+  {| Margin (Top U32) (Bottom U32) (Left U32) (Right U32) |}}
 
 
 ;; =============================================================
@@ -178,14 +226,25 @@
 
 
 ;; =============================================================
-;; LOCAL DECLARATIONS
+;; LOCAL DECLARATIONS — the five shapes
 ;; =============================================================
+
+;; All locals use `()` at statement position. The shape inside picks
+;; the variant. Per LocalDecl.core and Statement.synth:
+;;   (name)                    — Canonical      (declare-only, type = Pascal-of-name)
+;;   (name Type)                — TypeOnly        (local type wrapping Type, uninitialized)
+;;   (name Type:method(args))   — TypeInit         (new wrapping type, with init)
+;;   (name :method(args))       — Construct       (instance of Pascal-of-name via method)
+;;   (name expr)                — BindExpr        (bind name to any expression)
 
 [Bindings Radius [
   (demo &self [
-    (r Radius:new(5.0))
-    (counter U32:new(0))
-    ~counter.set(counter + 1)
+    (counter)                          ;; Canonical       — reuses existing Counter type
+    (buffer {Vec U8})                  ;; TypeOnly         — new local wrapping Vec<U8>
+    (origin Point:new(0.0 0.0))        ;; TypeInit          — new local wrapping Point, initialized
+    (radius :new(5.0))                 ;; Construct        — Radius instance via Radius:new
+    (total counter + 1)                ;; BindExpr         — bound to an expression
+    ~counter.set(total)                ;; Mutation (NOT a LocalDecl — see MUTATION)
     counter
   ])
 ]]
@@ -330,6 +389,260 @@
 
 [Combined Counter [
   (from &'Table {| Count |} self U32 self.Count)
+]]
+
+
+;; =============================================================
+;; MATCH EXPRESSIONS & PATTERNS
+;; =============================================================
+
+;; A match is `(| <target?> <arm>+ |)`. Each arm is
+;; `( <Pattern> ) <result-expr>`. The outer parens of the arm are
+;; part of Match.synth, not the pattern — patterns themselves
+;; never wrap in their own parens at match position.
+
+;; Pattern forms (Pattern.synth v0.20):
+;;   #VariantMatch# :Variant                — match variant, ignore payload
+;;   #VariantBind#  :Variant @binding       — match variant, bind payload
+;;   #VariantAlt#   [ +:Variant ]           — or-pattern (multiple variants)
+;;   #StringMatch#  "literal"               — match string literal
+
+[Describe Element [
+  (describe &self Quality (|
+    ([Fire Air]) Active                    ;; VariantAlt — or-pattern
+    ([Earth Water]) Receptive
+  |))
+]]
+
+;; VariantBind form exists in Pattern.synth as `:Variant @binding`,
+;; but a canonical spec example has not yet been approved. The shape
+;; the grammar permits in source is:
+;;
+;;   ( :Variant @binding ) result-expr
+;;
+;; i.e., inside a match arm `( pattern ) expr`, the pattern is a
+;; Pascal variant reference followed by a camelCase binding name.
+;; Naming the binding: per "Names Are Meaningful" the binding should
+;; describe WHAT the payload IS, not a generic placeholder. For an
+;; `Ok U32` payload, `u32` or a role-specific name like `statusCode`
+;; / `parsedDigit` is right; `value` is a pointer name and forbidden.
+;;
+;; TODO: add an approved VariantBind example once Li confirms the
+;; preferred shape and naming convention for bound payloads.
+
+;; Single-variant match acts as if/else over Bool:
+[Lookup Table [
+  (find &self &key String {Option String} [
+    (| self.containsKey(key)
+      (False) ^Option:None                 ;; VariantMatch — no payload
+    |)
+    Option:Some(self.get(key))
+  ])
+]]
+
+;; StringMatch form exists in Pattern.synth as `"literal"` at arm
+;; position: `( "literal" ) result-expr`. No canonical approved
+;; example in the spec yet — add once confirmed.
+
+
+;; =============================================================
+;; BINARY OPERATORS — arithmetic, comparison, logical
+;; =============================================================
+
+;; Enumerated from ExprMul/ExprAdd/ExprCompare/ExprAnd/ExprOr.synth.
+;; Precedence low → high: || , && , ==/!=/<=/>=/</>, +/-, *,% .
+;; NOTE: `/` (division) not yet in v0.20 — see bridge proposals §C5.
+
+[Arith Calculator [
+  (report &self String [
+    (a self.Left + self.Right)             ;; BinAdd
+    (b self.Left - self.Right)             ;; BinSub
+    (c self.Left * self.Right)             ;; BinMul
+    (d self.Left % self.Right)             ;; BinMod
+    StringFormat:combine(a b c d)
+  ])
+]]
+
+[Compare Entry [
+  (rank &self &other Entry Ordering (|
+    (self.Score == other.Score)  Ordering:Equal       ;; BinEq
+    (self.Score != other.Score)  Ordering:Differ      ;; BinNotEq
+    (self.Score <  other.Score)  Ordering:Less        ;; BinLt
+    (self.Score >  other.Score)  Ordering:Greater     ;; BinGt
+    (self.Score <= other.Score)  Ordering:LessEq      ;; BinLtEq
+    (self.Score >= other.Score)  Ordering:GreaterEq   ;; BinGtEq
+  |))
+]]
+
+[Logic Flag [
+  (describe &self &other Flag Bool [
+    ((self.Active && other.Active) || self.Override)  ;; BinAnd, BinOr
+  ])
+]]
+
+
+;; =============================================================
+;; POSTFIX OPERATORS — field access, method call, try-unwrap
+;; =============================================================
+
+;; ExprPostfix.synth chains apply left-to-right:
+;;   expr.Field          — FieldAccess
+;;   expr.method(args)    — MethodCall
+;;   expr?                — TryUnwrap (only meaningful on Result/Option)
+
+[Compose Pipeline [
+  (process &self &input String String [
+    self.stage1(input).stage2.stage3(self.Config)    ;; field + method chains
+  ])
+
+  (compileRust ~&self &files {Vec String} String [
+    (result self.compileFiles(files)?)                ;; TryUnwrap on Result
+    (ctx CodegenContext:new(result.Sema result.Names))
+    ctx.codegen
+  ])
+]]
+
+
+;; =============================================================
+;; EXPRESSION ATOMS — every ExprAtom.synth form
+;; =============================================================
+
+;; ExprAtom.synth (v0.20) enumerated:
+;;   #BorrowExpr#     &instance          — shared borrow of a local
+;;   #MutBorrowExpr#  ~&instance         — mutable borrow of a local
+;;   #SelfRef#        self                — the self expression
+;;   #InstanceRef#    :instance          — bare local reference
+;;   #PathCall#       :Type:method(args)  — type-path method call
+;;   #PathVariant#    :Type:Variant      — type-path variant
+;;   #BareVariant#    :Variant           — unqualified variant
+;;   #LiteralExpr#    :Literal           — literal value
+;;   #InlineEval#     [ <Body> ]         — block as expression
+;;   #MatchExpr#      (| <Match> |)      — match as expression
+;;   #LoopExpr#       [| <Loop> |]       — while-loop as expression
+;;   #IterExpr#       {| <Iter> [body] |}  — iteration as expression
+;;   #StructExpr#     { :Type +(:Field <Expr>) }  — construct a struct
+
+[Atoms Demo [
+  (run &self [
+    (local U32:new(0))                      ;; TypeInit local, used below
+
+    (bare local)                            ;; InstanceRef
+    (shared &local)                         ;; BorrowExpr
+    (mutable ~&local)                       ;; MutBorrowExpr
+    (me self)                               ;; SelfRef
+    (made Counter:new(0))                   ;; PathCall
+    (nope Option:None)                      ;; PathVariant
+    (go Active)                             ;; BareVariant (from enclosing Element)
+    (answer 42)                             ;; LiteralExpr (Int)
+    (sum [                                  ;; InlineEval — block evaluates to its tail
+      (x 1)
+      (y 2)
+      x + y
+    ])
+    (cls (| self.State (Ready) 1 (Done) 2 |)) ;; MatchExpr as expression
+    (total [| self.Count > 0                 ;; LoopExpr
+      [~self.Count.subAssign(1)]
+      self.Count
+    |])
+    (sumAll {| self.Items.item [item.Value] |}) ;; IterExpr
+    (pt {Point (Horizontal 3.0) (Vertical 4.0)}) ;; StructExpr — see next section
+    sum
+  ])
+]]
+
+
+;; =============================================================
+;; STRUCT CONSTRUCTION
+;; =============================================================
+
+;; StructConstruct.synth: `{ :Type +(:Field <Expr>) }`.
+;; Mirrors the struct definition `{:Name +(:FieldName <Type>)}`
+;; with expressions replacing types. Every field listed; order free.
+
+[Geometry Point [
+  (origin &self Point
+    {Point (Horizontal 0.0) (Vertical 0.0)})
+
+  (offset &self &delta Point Point
+    {Point (Horizontal self.Horizontal + delta.Horizontal)
+           (Vertical self.Vertical + delta.Vertical)})
+]]
+
+;; Nested construction — any field value can itself be a StructExpr.
+[BuildPage Page [
+  (defaultPage &self Page
+    {Page
+      (Content "")
+      (Orientation Portrait)
+      (Margin {Margin (Top 10) (Bottom 10) (Left 5) (Right 5)})})
+]]
+
+
+;; =============================================================
+;; TYPE EXPRESSIONS — every Type.synth variant
+;; =============================================================
+
+;; Type.synth (v0.20) produces these Type variants:
+;;   Named              :Type                       — e.g. `U32`, `Element`
+;;   AppliedType        { :Constructor +<Type> }     — e.g. `{Vec Shape}`
+;;   GenericParamType   $Role {Bounds?}              — e.g. `$Value`, `$Value{Clone}`
+;;   Borrowed           &<Type>?+origin?+view         — e.g. `&String`, `&'Map self`
+;;   MutBorrowed        ~&<Type>?+origin?+view        — e.g. `~&String`
+;;   SelfAssoc          self:AssociatedName          — e.g. `self:Item`
+
+;; Each appears as a parameter or return type on some method:
+
+@[| TypeForms
+  (named &self U32)                                 ;; Named primitive
+  (applied &self {Vec String} {Option String})       ;; AppliedType, twice
+  (generic {$Value} &self $Value $Value)             ;; GenericParamType
+  (bounded {$Value{Clone Debug}} &self $Value)        ;; bounded generic
+  (borrowed &self &buffer String String)             ;; Borrowed
+  (mutating ~&self ~&target String)                   ;; MutBorrowed
+  (fromOrigin &'Source self &key String String)      ;; Borrowed + origin
+  (viewed ~&self {| Count |} U32)                     ;; MutBorrowed + view type
+|]
+
+;; Self-associated type (needs a trait with associated type in scope):
+@[| Iterable
+  Item                                              ;; associated type
+  (next ~&self {Option self:Item})                   ;; SelfAssoc in return type
+|]
+
+
+;; =============================================================
+;; BORROW & VIEW IN EXPRESSIONS
+;; =============================================================
+
+;; `&` at expression position borrows a local (not yet an arbitrary
+;; path — see bridge proposals §C7). `~&` is mutable borrow of a local.
+
+[Share Buffer [
+  (inspect &self [
+    (raw self.Data.len)                  ;; no borrow
+    (shared &rawLocal)                   ;; BorrowExpr (raw local)
+    (mutRef ~&rawLocal)                  ;; MutBorrowExpr
+    self.render(shared)
+  ])
+]]
+
+
+;; =============================================================
+;; EXPRESSION STATEMENTS — side effects in bodies
+;; =============================================================
+
+;; Any side-effect expression at body position is wrapped in `[...]`:
+;;   [self.doSomething(args)]         — ExprStmt
+;; This is Statement.synth's #ExprStmt# form. A body's *tail* value
+;; (last expression) is bare, without [].
+
+[Side Worker [
+  (run ~&self [
+    [self.loadConfig]                    ;; ExprStmt — side effect
+    [self.connect]                        ;; ExprStmt
+    [self.announce]                       ;; ExprStmt
+    self.Status                           ;; tail expression (the body's value)
+  ])
 ]]
 
 
