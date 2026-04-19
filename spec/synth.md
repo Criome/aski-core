@@ -64,7 +64,7 @@ works because the space is next to delimiters, not between
 items themselves.
 
 
-## Surfaces (v0.18)
+## Surfaces (v0.19)
 
 Synth is organized into four **surfaces**, each a dialect
 family with its own root rule and rkyv artifact. Each

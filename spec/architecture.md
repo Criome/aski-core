@@ -44,7 +44,7 @@ projections from `.sema`). Everything else is rkyv-typed-data in,
 rkyv-typed-data out.
 
 
-## Four Surfaces (v0.18)
+## Four Surfaces (v0.19)
 
 aski has four DSLs, one per file type:
 
@@ -261,13 +261,13 @@ It ignores: TraitImpl (has expressions → semac), Process
 
 For a module like:
 ```aski
-(Elements Element Quality describe)
+(Elements Element Quality Describe)
 (Element Fire Earth Air Water)
 (Quality Passionate Grounded Intellectual Intuitive)
 {Point (Horizontal F64) (Vertical F64)}
-Counter U32
+(| Counter U32 |)
 {| MaxSigns U32 12 |}
-(describe [(describe :@Self Quality)])
+(Describe [(describe &self Quality)])
 ```
 
 domainc generates:

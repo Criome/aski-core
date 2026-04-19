@@ -45,7 +45,7 @@ shapes that composed data takes. Newtypes are transparent
 wrappers — the pipes connote "one thing wrapped."
 
 
-## Surfaces (v0.18)
+## Surfaces (v0.19)
 
 Aski has four surfaces, each a grammar family for a specific
 file kind:
@@ -65,7 +65,7 @@ everything else is referenced from aski. Core similarly
 references aski for Type expressions.
 
 
-## Every Construct Is Delimited (v0.18)
+## Every Construct Is Delimited (v0.19)
 
 No bare multi-item sequences. Every construct at every level
 has explicit delimiters so the engine always knows what it's
@@ -90,16 +90,15 @@ the construct; the `@LabelKind` after it reads the name.
 ## Everything Is a Type
 
 There are no variables in aski. What other languages call a
-"variable declaration" is a **type instance declaration**.
+"variable declaration" is a **local type declaration**.
 
-`@Counter U32/new(0)` declares a newtype domain `Counter`
-wrapping a `U32` instance. The `@` sigil means "this is a
-thing now" — it brings a type into existence and creates an
-instance of it.
+`(counter U32:new(0))` declares a local type `counter` wrapping
+a `U32` instance. The `()` delimiter at statement position is
+the local-declaration form. The camelCase name marks it as a
+runtime-bound thing (vs. compile-time structural Pascal types).
 
-`@Counter` is PascalCase because it is a THING, not an action.
-PascalCase = types, enums, structs, modules, variants, fields.
-camelCase = traits, methods. There is no camelCase after `@`.
+Locals are camelCase — they are runtime entities. Types they
+wrap, and types they reference, are PascalCase.
 
 
 ## Names Are Meaningful
@@ -113,7 +112,8 @@ semantic identity of the parameter:
 - `$Value` — the broadest category of what something contains
 - `$Output` — what a computation produces
 - `$Failure` — what goes wrong
-- `$Clone&Debug` — the bounds ARE the name
+- `${Clone Debug}` — bounds-as-name (no semantic name; bound set
+  inside `{}` identifies the parameter)
 
 Two different things always have different names. `$LeftValue`
 and `$RightValue` are different even if they share qualities.
@@ -207,11 +207,10 @@ Exports only reference names declared at the module's own
 scope level. A name buried inside a nested definition is not
 directly exportable — it is reachable through its parent.
 
-In bodies, `@Name` resolves against the scope chain. If the
-name exists in an ancestor scope, `@Name` is an instance of
-that existing type. If it doesn't exist, `@Name` declares a
-new local type. Shadowing via `@` is not possible — use a
-different name.
+In bodies, a bare camelCase name (`counter`, `result`) references
+a local in scope. To declare a new local, use `(name …)` at
+statement position. Shadowing the same name twice in one scope
+is not possible — use a different name.
 
 
 ## Domains Come From Data
