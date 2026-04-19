@@ -1,0 +1,19 @@
+;; program.core — exec surface output entity (v0.19).
+;;
+;; A Program is the top-level entity for a .exec file. Carries:
+;;   - the module name
+;;   - imports (no exports — exec files don't export)
+;;   - optional consts
+;;   - a body of statements (the main process)
+;;
+;; Parallel to Module but minimal. Imports and Const types are reused
+;; from module.core / domain.core.
+
+(Program Program)
+
+
+{Program
+  (Name ModuleName)
+  (Imports [Vec Import])
+  (Consts [Vec Const])
+  (Body [Vec Statement])}

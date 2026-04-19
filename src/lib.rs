@@ -39,14 +39,11 @@ name_newtype!(TraitName);
 name_newtype!(VariantName);
 name_newtype!(FieldName);
 name_newtype!(MethodName);
-name_newtype!(SigName);
 
 // Local / body names
 name_newtype!(InstanceName);
 name_newtype!(ParamName);
 name_newtype!(BindingName);
-name_newtype!(RoleName);
-name_newtype!(ItemName);
 
 // Origin places
 name_newtype!(PlaceName);
