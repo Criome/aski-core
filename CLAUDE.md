@@ -37,15 +37,53 @@ eventually produces sema (via semac) + Rust + `.aski-table.sema`
 - No strings in sema — enum discriminants ARE the bytes
 - No newline significance anywhere in the aski-family
 
-## v0.19 Shape
+## v0.20 Shape
 
-12 .core files (11 v0.18 + program.core new). LocalDecl unified (5 nested variants — Canonical/TypeOnly/TypeInit/Construct/BindExpr replacing Instance/LocalTypeDecl/TypedInstance/UntypedInstance). Loop struct with required Condition (InfiniteLoop retired). Type enum 5 variants (InstanceType retired). Pattern adds VariantAlt. Module.Exports flattened to `Vec<TypeName>`. Program added for exec surface.
+12 .core files. v0.20 changes layered on v0.19:
+- **Visibility**: Module.Exports retired (declaration-local via `@` sigil in grammar).
+- **Module.Ffis retired** — FFI moved to its own `.ffi` surface.
+- **Associated types**: TraitDecl.AssociatedTypes + TraitImpl.AssociatedTypeBindings + new AssociatedTypeBinding type.
+- **Type.SelfAssoc** variant added for `self:Item` paths.
+- **Expr.SelfRef** variant added for bare `self` as expression atom.
+- **AssociatedName** newtype added (16 Name newtypes total).
 
-Four DSLs (surfaces): core, aski, synth, exec. Each is a grammar
-family. Dialects within a DSL (Body, Statement, Expr, …) are the
-individual `.synth` files that compose it. askicc bundles all
-four DSLs into one `dsls.rkyv` — a domain-data-tree: every node
-is an enum (one-of) or struct (all-of) of synth-core types.
+v0.19 changes carried over:
+- LocalDecl unified (5 nested variants).
+- Loop struct with required Condition (InfiniteLoop retired).
+- Type enum 5 variants (InstanceType retired).
+- Pattern.VariantAlt.
+- program.core (exec surface output).
+- Method.Body is `[Option [Box Body]]` — default trait methods.
+
+## ⚠️ .core files use LEGACY fake-enum-TOC (forward-facing grammar supports module header but files haven't migrated)
+
+The 12 .core files in `core/` all start with a first-line fake-enum
+that doubles as a TOC:
+
+```aski
+(Trait TraitDecl TraitImpl Method Signature NamedMethod AssociatedTypeBinding)
+```
+
+This parses as an Enum declaration named "Trait" whose variants are
+the names of types defined later. Works with corec's current parser.
+
+**Why stale:** v0.20 grammar (in askicc's `source/core/Root.synth`)
+supports an OPTIONAL `?#Module#(...)` header allowing real module
+name + imports declarations. `.core` files don't use it yet, and
+corec's parser doesn't understand it yet.
+
+**How to fix:** paired change —
+1. Extend corec's parser to accept the v0.20 module header form.
+2. Rewrite every .core file's first line from the fake-enum TOC
+   to a proper module header with explicit imports.
+
+Scheduled for a future session; not blocking current work.
+
+Five DSLs (surfaces, v0.20): core, aski, synth, exec, **ffi** (new).
+Each is a grammar family. Dialects within a DSL (Body, Statement,
+Expr, …) are the individual `.synth` files that compose it.
+askicc bundles all five DSLs into one `dsls.rkyv` — a domain-data-tree:
+every node is an enum (one-of) or struct (all-of) of synth-core types.
 
 aski-core follows the same principle — a quasi-pure domain-tree
 of the parse. No generic "Node" with untyped children; every
