@@ -33,7 +33,7 @@ eventually produces sema (via semac) + Rust + `.aski-table.sema`
 - Grammar rules ARE the compiler — synth dialect files define parsing
 - No keywords — every symbol carries meaning
 - Six delimiters, context-dependent per dialect
-- PascalCase = things (domains, types, modules), camelCase = actions (traits, methods)
+- PascalCase = compile-time structural (types, traits, variants, fields, type params, modules, consts); camelCase = runtime (methods, locals, self) — **v0.19**
 - No strings in sema — enum discriminants ARE the bytes
 - No newline significance anywhere in the aski-family
 
