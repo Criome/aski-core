@@ -402,15 +402,29 @@
 ;; never wrap in their own parens at match position.
 
 ;; Pattern forms (Pattern.synth v0.20):
-;;   #VariantMatch# :Variant                — match variant, ignore payload
-;;   #VariantBind#  :Variant @binding       — match variant, bind payload
-;;   #VariantAlt#   [ +:Variant ]           — or-pattern (multiple variants)
-;;   #StringMatch#  "literal"               — match string literal
+;;   #WildcardPattern# _                    — match anything, bind nothing
+;;   #VariantMatch#    :Variant              — match variant, ignore payload
+;;   #VariantBind#     :Variant @binding     — match variant, bind payload
+;;   #VariantAlt#      [ +:Variant ]          — or-pattern (multiple variants)
+;;   #StringMatch#     "literal"             — match string literal
 
 [Describe Element [
   (describe &self Quality (|
     ([Fire Air]) Active                    ;; VariantAlt — or-pattern
     ([Earth Water]) Receptive
+  |))
+]]
+
+;; Wildcard `_` catches anything not matched by earlier arms. Useful
+;; when only some variants need distinct handling. Placed last in
+;; the arm list — earlier arms take priority.
+
+[Route Request [
+  (dispatch &self &cmd Request Response (| cmd
+    ( Start )    Response:Started
+    ( Stop )     Response:Stopped
+    ( Ping )     Response:Pong
+    ( _ )        Response:Unknown
   |))
 ]]
 
