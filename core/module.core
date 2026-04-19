@@ -1,10 +1,10 @@
-;; module.core — Module root, imports, exports, visibility.
+;; module.core — Module root, imports, visibility (v0.20).
 ;;
-;; v0.19: flat exports/imports. Under the new case rule, every
-;; module-level exportable thing is Pascal (enums, structs,
-;; newtypes, traits, consts all share the structural space), so
-;; exports and imports collapse to single lists of names. veric
-;; resolves each to its declaration kind.
+;; v0.20 changes:
+;;   - Module.Exports retired — visibility is declaration-local
+;;     via the `@` sigil. Each declaration carries its own Visibility.
+;;   - Module.Ffis retired — FFI declarations live in `.ffi` files
+;;     under the FFI surface, linked externally by veric.
 
 (Module Module Import Visibility)
 
@@ -19,13 +19,10 @@
 
 {Module
   (Name ModuleName)
-  (Visibility Visibility)
   (Imports [Vec Import])
-  (Exports [Vec TypeName])
   (Enums [Vec Enum])
   (Structs [Vec Struct])
   (Newtypes [Vec Newtype])
   (Consts [Vec Const])
   (TraitDecls [Vec TraitDecl])
-  (TraitImpls [Vec TraitImpl])
-  (Ffis [Vec Ffi])}
+  (TraitImpls [Vec TraitImpl])}

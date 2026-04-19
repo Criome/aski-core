@@ -25,7 +25,10 @@
   (GenericParamType GenericParam)
 
   ;; `:Type` — plain named reference (no application, no borrow)
-  (Named TypeName))
+  (Named TypeName)
+
+  ;; `self:Item` — associated type of the current trait's Self (v0.20)
+  {SelfAssoc (Name AssociatedName)})
 
 
 {TypeApplication

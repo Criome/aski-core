@@ -1,0 +1,351 @@
+;; Aski v0.20 — by example.
+;;
+;; Shifts from v0.19:
+;;   • Visibility: `@` prefix on declarations and field slots marks
+;;     public; default is private. Module.Exports retired.
+;;   • Traits: declaration delimiter moved from `(...)` to `[|...|]`
+;;     to resolve enum/trait first-token conflict. Every root
+;;     construct now has a unique opening token.
+;;   • FFI: own surface (`.ffi` files). Removed from aski root.
+;;   • Associated types: trait items can be bare Pascal names
+;;     (type members) or `(methodName …)` (methods). Impls bind
+;;     associated types as `(AssociatedName Type)`.
+;;   • `self` in expressions: now a proper expression atom.
+;;     `self.field`, `self.method(x)` parse correctly.
+;;   • Self-associated type path: `self:Item` accesses the current
+;;     trait's Self-impl's associated type named Item.
+;;
+;; Delimiter allocation (aski root):
+;;   ()      Module (first), Enum
+;;   []      TraitImpl
+;;   {}      Struct
+;;   {||}    Const
+;;   (||)    Newtype
+;;   [||]    TraitDecl  (new in v0.20 — was FFI)
+;;
+;; FFI lives in `.ffi` files (ffi surface).
+;;
+;; Sigils:
+;;   @     visibility (public)                          :     path
+;;   &     borrow                                        ~     mutable modifier
+;;   $     type parameter                                '     origin
+;;   ^     early return                                  ?     try-unwrap (postfix)
+;;   //    line comment (synth: ordered choice)
+
+
+;; =============================================================
+;; MODULE
+;; =============================================================
+
+;; Module header: name + imports only. No exports list.
+;; Visibility is declaration-local.
+
+(Elements [Core ParseState Token])
+
+
+;; =============================================================
+;; ENUMS
+;; =============================================================
+
+;; @ makes the enum public; without @ the enum is module-private.
+
+@(Element Fire Earth Air Water)
+@(Modality Cardinal Fixed Mutable)
+(InternalState Loading Ready Done)        ;; private
+
+;; data-carrying variants
+@(Shape (Circle F64) {Rectangle (Width F64) (Height F64)} (Triangle F64))
+
+;; generic enum
+@(Option {$Value} (Some $Value) None)
+@(Result {$Output $Failure} (Ok $Output) (Err $Failure))
+
+;; nested enum inside enum
+@(Token
+  (Ident String)
+  (Number I64)
+  (| Delimiter LParen RParen LBracket RBracket LBrace RBrace |)
+  Newline)
+
+
+;; =============================================================
+;; NEWTYPES
+;; =============================================================
+
+;; Newtype wrapped value: default private; @ inside makes it public.
+
+@(| Counter @U32 |)                        ;; public newtype, transparent
+@(| OpaqueCount U32 |)                      ;; public newtype, opaque (invariant-carrying)
+(| InternalCount @U32 |)                    ;; private newtype (module-local)
+
+;; generic newtype
+@(| Items {$Value} @{Vec $Value} |)
+
+
+;; =============================================================
+;; STRUCTS
+;; =============================================================
+
+;; Fields default private. @ prefix exposes them.
+
+@{Point (@Horizontal F64) (@Vertical F64)}   ;; public struct, public fields
+@{Counter (@Count U32) (cache U32)}           ;; public struct, Count public, cache private
+@{SecretData (key String) (nonce U64)}        ;; public struct, all fields private
+{InternalPoint (X F64) (Y F64)}                ;; private struct
+
+;; generic struct
+@{Pair {$Left $Right} (@LeftValue $Left) (@RightValue $Right)}
+
+;; bounded generic
+@{Container {$Value{Clone Debug}} (@Items {Vec $Value}) (@Count U32)}
+
+;; self-typed field — field IS the type, terse form
+@{Drawing (@Shapes {Vec Shape}) @Name}
+
+
+;; =============================================================
+;; CONSTANTS
+;; =============================================================
+
+@{| MaxSigns U32 12 |}
+{| InternalTuningFactor F64 1.618 |}          ;; private const
+
+
+;; =============================================================
+;; TRAIT DECLARATIONS — [| … |] delimiter (v0.20)
+;; =============================================================
+
+;; Trait body = items (associated types + methods). Items ordered any way.
+
+@[| Describe
+  (describe &self Quality)
+|]
+
+;; Trait with default method implementation
+@[| Greeter
+  (name &self String)
+  (greet &self String [                    ;; default impl — has body
+    StringFormat:combine("Hello, " self.name "!")
+  ])
+|]
+
+;; Trait with associated type
+@[| Iterator
+  Item                                     ;; associated type — bare Pascal
+  (next ~&self {Option self:Item})         ;; use via self:Item path
+|]
+
+;; Trait with super-traits
+@[| Ord {PartialOrd Eq}
+  (compare &self &other Ord)
+|]
+
+;; Trait with generics AND super-traits AND associated types
+@[| TotalOrd {$Value PartialOrd Eq}
+  Output
+  (cmp &self &other self:Output)
+|]
+
+
+;; =============================================================
+;; TRAIT IMPLEMENTATIONS
+;; =============================================================
+
+;; Trait impl: `[TraitName …]` delimiter. Body items can be method
+;; implementations or associated type bindings.
+
+[Describe Element [
+  (describe &self Quality (|
+    ([Fire Air]) Active
+    ([Earth Water]) Receptive
+  |))
+]]
+
+;; Impl binding an associated type + providing method
+[Iterator TokenReader [
+  (Item Token)                             ;; bind: Iterator::Item = Token
+  (next ~&self {Option Token} [
+    ;; body …
+  ])
+]]
+
+;; Generic trait impl
+[Process {$Value} Container [
+  (transform &self &items {Vec $Value} {Vec $Value} [
+    items
+  ])
+]]
+
+
+;; =============================================================
+;; LOCAL DECLARATIONS
+;; =============================================================
+
+[Bindings Radius [
+  (demo &self [
+    (r Radius:new(5.0))
+    (counter U32:new(0))
+    ~counter.set(counter + 1)
+    counter
+  ])
+]]
+
+
+;; =============================================================
+;; SELF IN EXPRESSIONS
+;; =============================================================
+
+;; self is a valid expression atom in v0.20 — self.field and
+;; self.method(x) parse as FieldAccess and MethodCall on SelfRef.
+
+[Geometry Point [
+  (offset &self &delta Point Point
+    {Point (Horizontal self.Horizontal + delta.Horizontal)
+           (Vertical self.Vertical + delta.Vertical)})
+]]
+
+
+;; =============================================================
+;; MUTATION
+;; =============================================================
+
+[Tick Counter [
+  (tick ~&self [
+    ~self.Count.set(self.Count + 1)
+    self.Count
+  ])
+]]
+
+
+;; =============================================================
+;; WHILE LOOP — condition required, infinite = `while true`
+;; =============================================================
+
+[Parser TokenReader [
+  (skipWhitespace ~&self [| self.atEnd == False
+    [(| self.peek
+      (Newline) self.advance
+      (Space) self.advance
+    |)]
+  |])
+]]
+
+;; Infinite loop pattern
+[Worker Server [
+  (run ~&self [| true
+    [self.step]
+  |])
+]]
+
+
+;; =============================================================
+;; EARLY RETURN
+;; =============================================================
+
+[Lookup Table [
+  (find &self &key String {Option String} [
+    (| self.containsKey(key)
+      (False) ^Option:None
+    |)
+    Option:Some(self.get(key))
+  ])
+]]
+
+
+;; =============================================================
+;; ITERATION
+;; =============================================================
+
+[Iterate Items [
+  (printAll &self {| self.List.item [StdOut:print(item.Name)] |})
+]]
+
+
+;; =============================================================
+;; GENERICS — full forms
+;; =============================================================
+
+@(Option {$Value} (Some $Value) None)
+@(Result {$Output $Failure} (Ok $Output) (Err $Failure))
+
+;; method-level generics
+@[| Collect
+  (into {$Target} &self {$Target})
+|]
+
+;; bounded generics
+@[| Serialize
+  (toBytes &self &data $Value{Clone Debug} {Vec U8})
+|]
+
+
+;; =============================================================
+;; ERROR PROPAGATION — ? postfix
+;; =============================================================
+
+[Compiler Compiler [
+  (compileRust ~&self &files {Vec String} String [
+    (result self.compileFiles(files)?)
+    (ctx CodegenContext:new(result.Sema result.Names))
+    ctx.codegen
+  ])
+]]
+
+
+;; =============================================================
+;; ORIGINS — place-based lifetime annotations
+;; =============================================================
+
+[Cache LookupTable [
+  (get &'Map self &key String String)
+]]
+
+[Inspector Tree [
+  (leftmost &'self.Left self String)
+]]
+
+[Merge Rope [
+  (concat &'(Left Right) node Rope)
+]]
+
+
+;; =============================================================
+;; VIEW TYPES — partial-field borrows
+;; =============================================================
+
+@{Counter (@Count U32) (@Name String)}
+
+[Tick Counter [
+  (tick ~&self {| Count |} U32 [
+    ~self.Count.set(self.Count + 1)
+    self.Count
+  ])
+]]
+
+[Observe Counter [
+  (summary &self {| Count Name |} String [
+    StringFormat:combine(self.Name self.Count)
+  ])
+]]
+
+[Combined Counter [
+  (from &'Table {| Count |} self U32 self.Count)
+]]
+
+
+;; =============================================================
+;; FFI — own surface (see `.ffi` files)
+;; =============================================================
+;;
+;; FFI declarations live in `.ffi` files, e.g., `lexer.ffi`:
+;;
+;;   (Lexer
+;;     (lex &source String {Vec Token})
+;;     (tokenize &source String {Vec Token}))
+;;
+;;   (FileSystem
+;;     (readToString &path String String)
+;;     (writeString &path String &content String))
+;;
+;; Aski modules reference FFI groups via imports. veric links
+;; .aski and .ffi translation units at program-level.

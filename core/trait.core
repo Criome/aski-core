@@ -13,7 +13,7 @@
 ;; NamedSignature retired — TraitDecl.Methods uses NamedMethod (same
 ;; as TraitImpl), with body optional to distinguish required from default.
 
-(Trait TraitDecl TraitImpl Method Signature NamedMethod)
+(Trait TraitDecl TraitImpl Method Signature NamedMethod AssociatedTypeBinding)
 
 
 {TraitDecl
@@ -21,6 +21,7 @@
   (Visibility Visibility)
   (Generics [Vec GenericParam])
   (SuperTraits [Vec TraitBound])
+  (AssociatedTypes [Vec AssociatedName])
   (Methods [Vec NamedMethod])}
 
 
@@ -29,7 +30,12 @@
   (TraitArgs [Vec Type])
   (Target Type)
   (Generics [Vec GenericParam])
+  (AssociatedTypeBindings [Vec AssociatedTypeBinding])
   (Methods [Vec NamedMethod])}
+
+{AssociatedTypeBinding
+  (Name AssociatedName)
+  (Value Type)}
 
 {NamedMethod
   (Name MethodName)

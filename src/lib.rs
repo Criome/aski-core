@@ -56,6 +56,9 @@ name_newtype!(TypeName);
 // Generic parameter (introduced by $X in source)
 name_newtype!(GenericName);
 
+// Associated type (trait members, v0.20)
+name_newtype!(AssociatedName);
+
 // ─────────────────────────────────────────────────────────────
 // Literal values (for Const and Pattern)
 // ─────────────────────────────────────────────────────────────

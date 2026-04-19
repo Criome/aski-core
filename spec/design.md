@@ -45,15 +45,16 @@ shapes that composed data takes. Newtypes are transparent
 wrappers — the pipes connote "one thing wrapped."
 
 
-## Surfaces (v0.19)
+## Surfaces (v0.20)
 
-Aski has four surfaces, each a grammar family for a specific
+Aski has five surfaces, each a grammar family for a specific
 file kind:
 
 - **core** (`.core`) — pure type definitions. What corec eats.
 - **aski** (`.aski`) — modules, libraries. What askic parses.
 - **synth** (`.synth`) — grammar definitions. What askicc parses.
 - **exec** (`.exec`) — executable programs. What askic runs.
+- **ffi** (`.ffi`) — foreign function interface declarations (v0.20).
 
 Each surface has its own `Root.synth` and its own dialect
 tree. Surfaces don't share `.synth` files directly — they
@@ -71,20 +72,22 @@ No bare multi-item sequences. Every construct at every level
 has explicit delimiters so the engine always knows what it's
 reading before entering.
 
-Aski root delimiter allocation:
+Aski root delimiter allocation (v0.20):
 
 | Delimiter | Construct |
 |-----------|-----------|
-| `()` | Module (first), Enum, TraitDecl |
+| `()` | Module (first), Enum |
 | `[]` | TraitImpl |
 | `{}` | Struct |
 | `{||}` | Const |
 | `(||)` | Newtype |
-| `[||]` | FFI |
+| `[||]` | **TraitDecl** (v0.20; was FFI) |
 
-Process (the `main` block) moved to the exec surface (`.exec` files).
-No bare newtypes. No fallback rules. The delimiter identifies
-the construct; the `@LabelKind` after it reads the name.
+Every root construct has a unique opening token — first-token
+decidable. FFI moved to its own `.ffi` surface; see §Surfaces.
+Process moved to the exec surface. No bare newtypes. No
+fallback rules. The delimiter identifies the construct; the
+`@LabelKind` after it reads the name.
 
 
 ## Everything Is a Type
@@ -304,6 +307,58 @@ more. The data-tree built by askicc IS the parsing state
 machine. When the parser encounters ambiguity, the answer
 comes from the data-tree's context, not from grammar
 complexity.
+
+
+## No Complex Lookahead
+
+Aski's grammar is first-token-decidable at every choice point.
+When new features would require multi-token lookahead or
+backtracking to parse, the escape valve is **creating a new DSL
+(surface)** for that domain — not adding parser logic.
+
+Examples of the DSL-creation pattern:
+- **exec** (`.exec`) — executable programs, separate from module-
+  oriented `.aski`. Process-level constructs don't complicate
+  the aski grammar.
+- **ffi** (`.ffi`, v0.20) — foreign function interfaces. FFI
+  declarations moved to their own surface when `[||]` was
+  reclaimed for TraitDecl; gives FFI room to grow with
+  target-language specifiers and calling conventions.
+
+Every dialect's parser stays locally decidable. Every grammar
+rule has a unique opening token within its dialect.
+
+
+## Visibility (v0.20)
+
+The `@` sigil prefix marks public. Default is private. Applies
+uniformly at every declaration point and field slot:
+
+```aski
+@(Element Fire Earth Air Water)              ;; public enum
+(InternalEnum Ready Done)                     ;; private enum
+
+@{Point (@Horizontal F64) (@Vertical F64)}    ;; public struct, public fields
+@{Counter (@Count U32) (cache U32)}            ;; Count public, cache private
+{SecretData (key String)}                      ;; private struct
+
+@(| Counter @U32 |)                            ;; public newtype, wrapped public (transparent)
+@(| OpaqueCount U32 |)                          ;; public newtype, wrapped private (opaque)
+```
+
+Module exports list (v0.19) retired — visibility is declaration-
+local. veric resolves "is name X visible from outside?" by
+looking at the declaration's `@` prefix.
+
+Rules:
+- **Declarations:** Enum, Struct, Newtype, Const, TraitDecl, TraitImpl
+  each take optional `@` prefix for public.
+- **Struct fields:** `(@FieldName Type)` public; `(FieldName Type)` private.
+- **Self-typed fields:** `@FieldName` public; `FieldName` private.
+- **Newtype wrapped type:** `@Type` inside `(| Name @Type |)` = wrapped public;
+  bare type = wrapped private (opaque).
+- **Module:** module itself is always "visible" within its file; the
+  `.aski` file IS the module. No `@` on the Module line.
 
 
 ## No Tuples

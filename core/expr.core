@@ -29,6 +29,7 @@
 
   ;; Atom expressions (ExprAtom)
   {InstanceRef (Name InstanceName)}
+  SelfRef
   {BorrowExpr (Origin [Option Origin])
               (ViewFields [Vec FieldName])
               (Target InstanceName)}
