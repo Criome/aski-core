@@ -306,6 +306,99 @@ comes from the data-tree's context, not from grammar
 complexity.
 
 
+## No Tuples
+
+Aski does not have tuples like Rust's `(A, B)`. Positional
+nameless grouping betrays "Names Are Meaningful" — if you have
+two values that need to travel together, they have roles, and
+those roles deserve names.
+
+For multi-value returns, define a struct:
+
+```aski
+{DivResult (Quotient I64) (Remainder I64)}
+
+(Math [(divmod &self &divisor I64 DivResult)])
+```
+
+Reads clearly at every use site:
+
+```aski
+(result self.divmod(divisor))
+result.Quotient + result.Remainder     ;; meaningful
+```
+
+vs what a tuple would give:
+```aski
+result.0 + result.1                     ;; what's .0? what's .1?
+```
+
+### Self-typed struct fields make this terse
+
+Where a field name IS the type name, aski's self-typed form
+collapses the declaration to one word:
+
+```aski
+;; verbose (generic field names)
+{Person (Name String) (Age U32) (Greeting String)}
+
+;; self-typed — field IS the type (v0.19)
+{Person Name Age Greeting}              ;; assumes Name, Age, Greeting are defined types
+```
+
+Self-typed fields remove the type-declaration cost for meaningful
+fields where name = type. Combined with struct-for-grouping, the
+"tuples would be shorter" argument loses most of its force.
+
+### What you give up
+
+Ad-hoc pair/triple grouping. Aski forces naming for every group.
+This is a deliberate cost that buys clarity at every use site.
+
+
+## No Native Infinite-Loop Form
+
+Aski's loop delimiter `[| <Expr> <Body> |]` requires a
+condition. For infinite loops, write `while true`:
+
+```aski
+[| true
+  [handleEvent]
+  [updateState]
+|]
+```
+
+### Why no distinct `loop {}` form
+
+All six delimiter pairs are allocated (`()`, `[]`, `{}`,
+`(||)`, `[||]`, `{||}`). Adding a dedicated infinite-loop form
+would require either:
+
+- Stealing a delimiter from another construct (costs grammar clarity)
+- A distinguishing marker inside `[||]` (sigil noise)
+- A contextual rule like "first-token-is-statement → infinite" (works but adds parser state)
+
+The cost-benefit doesn't justify it: infinite loops are a
+genuine pattern (event loops, servers, retry-until-success)
+but not frequent enough in aski's domain-modeling focus to
+earn their own syntactic weight.
+
+### Common infinite-loop uses
+
+- **Event/server loops** — `[| true [event self.receive] [self.handle(event)] |]`
+- **Retry until success** — `[| true (attempt self.tryConnect) (| attempt …arm for Ok, arm for Err |) |]`
+- **Polling watchers** — `[| true [change self.waitForChange] [self.process(change)] |]`
+- **State machine drivers** — exit via `^` early return when terminal state reached.
+
+### Fallback for agents / contributors
+
+If an agent reads this and is tempted to "fix" the missing
+infinite-loop form: don't. `while true` is the intended pattern.
+The cost is one extra token at declaration; the gain is zero
+grammar expansion. This is a deliberate language decision, not
+a gap to fill.
+
+
 ## Defined Inputs and Outputs
 
 Every pipeline component has defined inputs and defined

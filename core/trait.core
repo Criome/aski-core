@@ -6,8 +6,14 @@
 ;; generic params ($Value) and super-trait references (PartialOrd, Eq).
 ;; Askic separates by kind: GenericParam captures → Generics field;
 ;; TraitName label captures → wrapped into TraitBound → SuperTraits field.
+;;
+;; Method.Body is optional. In TraitDecl, no body = required method,
+;; body = default implementation. In TraitImpl, body is required
+;; (veric enforces — empty body in impl position is an error).
+;; NamedSignature retired — TraitDecl.Methods uses NamedMethod (same
+;; as TraitImpl), with body optional to distinguish required from default.
 
-(Trait TraitDecl TraitImpl Method Signature NamedSignature NamedMethod)
+(Trait TraitDecl TraitImpl Method Signature NamedMethod)
 
 
 {TraitDecl
@@ -15,11 +21,7 @@
   (Visibility Visibility)
   (Generics [Vec GenericParam])
   (SuperTraits [Vec TraitBound])
-  (Signatures [Vec NamedSignature])}
-
-{NamedSignature
-  (Name MethodName)
-  (Signature Signature)}
+  (Methods [Vec NamedMethod])}
 
 
 {TraitImpl
@@ -36,7 +38,7 @@
 
 {Method
   (Signature Signature)
-  (Body [Box Body])}
+  (Body [Option [Box Body]])}
 
 {Signature
   (Generics [Vec GenericParam])
