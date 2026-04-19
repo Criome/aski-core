@@ -102,14 +102,30 @@
 
 (Compute [(add &self U32) (multiply &self &factor U32 U32)])
 
-;; Generic trait
+;; Generic trait — $Value in the constraint slot
 (Serialize {$Value{Clone Debug}}
   [(toBytes &self &data $Value {Vec U8})])
+
+;; Super-traits — bare Pascal trait refs in the constraint slot
+(Ord {PartialOrd Eq} [(compare &self &other Ord)])
+
+;; Super-traits AND generics together — generics first, supers after
+(TotalOrd {$Value PartialOrd Eq} [(cmp &self &other Ord)])
+
+;; Generic method — {$Name} slot on the signature
+(Collect [(into {$Target} &self {$Target})])
 
 
 ;; =============================================================
 ;; TRAIT IMPLEMENTATIONS
 ;; =============================================================
+
+;; Generic impl — {$T} slot right after the trait name
+[Process {$T} Container [
+  (transform &self &items {Vec $T} {Vec $T} [
+    items
+  ])
+]]
 
 ;; Trait reference is Pascal (Describe not describe)
 [Describe Element [

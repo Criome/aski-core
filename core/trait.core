@@ -1,7 +1,11 @@
 ;; trait.core — trait declarations, implementations, methods, signatures (v0.19).
 ;;
-;; Traits are Pascal under v0.19. SuperTraits field retired (no v0.19
-;; syntax yet); will be reintroduced alongside super-trait syntax.
+;; Traits are Pascal under v0.19.
+;;
+;; The TraitDecl constraint slot is a combined `{}` block carrying both
+;; generic params ($Value) and super-trait references (PartialOrd, Eq).
+;; Askic separates by kind: GenericParam captures → Generics field;
+;; TraitName label captures → wrapped into TraitBound → SuperTraits field.
 
 (Trait TraitDecl TraitImpl Method Signature NamedSignature NamedMethod)
 
@@ -10,6 +14,7 @@
   (Name TraitName)
   (Visibility Visibility)
   (Generics [Vec GenericParam])
+  (SuperTraits [Vec TraitBound])
   (Signatures [Vec NamedSignature])}
 
 {NamedSignature
