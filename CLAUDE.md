@@ -1,67 +1,69 @@
 # aski-core — Parse Tree rkyv Contract (askic↔veric↔semac)
 
-aski-core defines the typed parse tree that askic produces,
-veric consumes and verifies, and semac consumes. corec generates
-Rust with rkyv derives from the `.core` definitions.
+aski-core defines the typed parse tree that askic produces, veric
+consumes and verifies, and semac consumes. corec generates Rust with
+rkyv derives from the `.core` definitions.
+
+**Scope**: this repo is the Rust rkyv types-contract crate only.
+The aski language spec, grammar (tree-sitter), and editor modes live
+in the `aski` repo.
 
 ## Role in the Pipeline
 
 ```
 corec       — .core → Rust with rkyv derives (bootstrap tool)
 synth-core  — grammar contract (askicc↔askic)
-aski-core   — parse tree contract (askic↔veric↔semac) — THIS REPO + spec docs
+aski-core   — parse tree contract (askic↔veric↔semac) — THIS REPO
 veri-core   — veric-output contract (veric↔semac)
-askicc      — source/<surface>/*.synth → dsls.rkyv (domain-data-tree)
-askic       — reads source + dsls.rkyv → rkyv parse tree (domain-data-tree of aski-core types)
+askicc      — source/<surface>/*.synth → dsls.rkyv
+askic       — reads source + dsls.rkyv → per-module aski-core rkyv
 veric       — per-module rkyv → program.rkyv
 semac       — program.rkyv + domain types → .sema
 ```
 
-## What Aski Is
+## Where Language Docs Live
 
-Sema is the universal typed binary format — domain variants as
-bytes. Only semac produces true sema.
+See the `aski` repo for the language spec:
+- `aski/spec/design.md` — language design + delimiter allocation
+- `aski/spec/synth.md` — synth grammar spec
+- `aski/spec/architecture.md` — pipeline + surfaces
+- `aski/spec/syntax-v020.aski` — current language by example (v0.20)
+- `aski/spec/gap-analysis.md` — Rust-feature gaps
+- `aski/spec/bridge/paradigm.md` — spec-status framework
+- `aski/spec/bridge/{clear,small-decisions,big-decisions}.md`
+  — landing proposals
 
-Aski is how you visualize sema — a text projection readable by
-humans and writable by hand. The pipeline reads aski and
-eventually produces sema (via semac) + Rust + `.aski-table.sema`
-(name projection).
+## Design Principles (summary)
 
-## Design Principles
+See `aski/spec/design.md` for the full set. Load-bearing ones:
 
 - Sema is the source of truth — aski is a projection
 - Grammar rules ARE the compiler — synth dialect files define parsing
 - No keywords — every symbol carries meaning
 - Six delimiters, context-dependent per dialect
-- PascalCase = compile-time structural (types, traits, variants, fields, type params, modules, consts); camelCase = actual instances of a type (locals, methods, self, match-arm bindings). `F64` is the type; `f64` is an instance of it.
+- PascalCase = compile-time structural things (types, traits, variants,
+  fields, type params, modules, consts); camelCase = actual instances
+  of a type (locals, methods, `self`, match-arm bindings). `F64` is
+  the type; `f64` is an instance of it.
 - No strings in sema — enum discriminants ARE the bytes
 - No newline significance anywhere in the aski-family
 
-## v0.20 Shape
+## v0.20 Shape (this crate)
 
-12 .core files. v0.20 changes layered on v0.19:
-- **Visibility**: Module.Exports retired (declaration-local via `@` sigil in grammar).
-- **Module.Rfis retired** — RFI moved to its own `.rfi` surface.
-- **Associated types**: TraitDecl.AssociatedTypes + TraitImpl.AssociatedTypeBindings + new AssociatedTypeBinding type.
-- **Type.SelfAssoc** variant added for `self:Item` paths.
-- **Expr.SelfRef** variant added for bare `self` as expression atom.
-- **AssociatedName** newtype added (16 Name newtypes total).
+12 `.core` files defining the parse-tree types. 16 Name newtypes.
+Type enum with 6 variants. Pattern enum with 5 variants (Wildcard
+added 2026-04-19). Expr includes SelfRef. TraitDecl + TraitImpl
+carry AssociatedTypes / AssociatedTypeBindings. LocalDecl unified
+with 5 variants. Method.Body is `[Option [Box Body]]` for default
+trait methods.
 
-v0.19 changes carried over:
-- LocalDecl unified (5 nested variants).
-- Loop struct with required Condition (InfiniteLoop retired).
-- Type enum — 6 variants in v0.20 (InstanceType retired in v0.19; SelfAssoc added in v0.20).
-- Pattern — v0.20 has 5 variants: Wildcard (added 2026-04-19), VariantBind, VariantAlt, VariantMatch, StringMatch.
-- program.core (exec surface output).
-- Method.Body is `[Option [Box Body]]` — default trait methods.
-
-## ⚠️ .core files use LEGACY fake-enum-TOC (forward-facing grammar supports module header but files haven't migrated)
+## ⚠️ `.core` files use LEGACY fake-enum-TOC
 
 The 12 .core files in `core/` all start with a first-line fake-enum
 that doubles as a TOC:
 
 ```aski
-(Trait TraitDecl TraitImpl Method Signature NamedMethod AssociatedTypeBinding)
+(Trait TraitDecl TraitImpl AssociatedTypeBinding NamedMethod Method Signature)
 ```
 
 This parses as an Enum declaration named "Trait" whose variants are
@@ -79,68 +81,40 @@ corec's parser doesn't understand it yet.
 
 Scheduled for a future session; not blocking current work.
 
-Five DSLs (surfaces, v0.20): core, aski, synth, exec, **rfi** (new).
-Each is a grammar family. Dialects within a DSL (Body, Statement,
-Expr, …) are the individual `.synth` files that compose it.
-askicc bundles all five DSLs into one `dsls.rkyv` — a domain-data-tree:
-every node is an enum (one-of) or struct (all-of) of synth-core types.
+## `.core` files (12)
 
-aski-core follows the same principle — a quasi-pure domain-tree
-of the parse. No generic "Node" with untyped children; every
-piece has a concrete typed home (Module, Enum, Struct, Method,
-Type, Pattern, …). That's what makes askic's output intelligible
-to veric/semac: it reads typed domain data, not text.
-
-Lifetime-aware: `'Place` origin sigil, view types via `{| |}`.
-See spec/design.md §Origins.
-
-## Key Files
-
-### Canonical language spec
-- `spec/design.md` — language design + delimiter allocation
-- `spec/synth.md` — synth grammar spec (with v0.19 additions)
-- `spec/architecture.md` — pipeline + surfaces
-- `spec/syntax-v020.aski` — current language reference examples (v0.20)
-  (pre-v0.20 versions deleted 2026-04-20; git history preserves them
-  if needed for archaeology)
-
-### Rust-gap analysis + bridge proposals (v0.20 → future)
-- `spec/gap-analysis.md` — catalog of Rust features aski doesn't yet
-  cover, with severity and spec-silent-vs-confirmed-OUT distinction.
-- `spec/bridge-proposals.md` — index of bridge-proposal docs.
-- `spec/bridge/paradigm.md` — **ground truth** on aski-Rust
-  relationship and spec-status levels (Landed / Proposed / Unspec'd /
-  Confirmed OUT). Read first.
-- `spec/bridge/clear.md` — items with clear resolution.
-- `spec/bridge/small-decisions.md` — items awaiting naming/sigil
-  decisions.
-- `spec/bridge/big-decisions.md` — items with open design.
-
-## Aski Language Family
-
-Synth, nexus, and future DSLs are all part of the aski family.
-Same principles: no newlines, delimiter-driven, position-derived.
+```
+primitive.core — Primitive (built-in types)
+module.core    — Module, Import, Visibility
+domain.core    — Enum, Struct, Newtype, Const, Rfi
+trait.core     — TraitDecl, TraitImpl, AssociatedTypeBinding,
+                 NamedMethod, Method, Signature
+type.core      — Type (incl. SelfAssoc v0.20), TypeApplication,
+                 GenericParam, TraitBound
+origin.core    — Origin (lifetime annotations)
+param.core     — Param (7 nested variants)
+expr.core      — Expr (incl. SelfRef v0.20), FieldInit
+statement.core — Statement, LocalDecl, Mutation
+pattern.core   — Pattern (incl. Wildcard v0.20), MatchArm, MatchExpr
+body.core      — Body, Block, Loop, Iteration, StructConstruct
+program.core   — Program (exec surface output)
+```
 
 ## Known Tensions
 
 ### Primitive::all() is a hand-maintained Rust list
 
-`aski-core/src/lib.rs` exposes a hardcoded list of primitive types
-(U8–U64, I8–I64, F32, F64, Bool, String, Char, Vec, Option, Box,
-Result) directly in Rust source. design.md §No Hand-Maintained Lists
-says "every list of names, enum variants, or dispatch tables in
-source code is a bug" — the Primitive struct is generated from
+`src/lib.rs` exposes a hardcoded list of primitive types (U8–U64,
+I8–I64, F32, F64, Bool, String, Char, Vec, Option, Box, Result)
+directly in Rust source. `aski/spec/design.md §No Hand-Maintained
+Lists` says "every list of names, enum variants, or dispatch tables
+in source code is a bug" — the Primitive struct is generated from
 `.core`, but the actual *data* (which names are primitive, what
 arity each has) is hand-written in Rust.
 
-Proper fix: keep the data in a .core file (something like
-`core/primitive-data.core`) and load it at build time, the way
-askicc embeds dialect data. Deferred; blocks on a mechanism for
-build-time data loading across the aski-core / corec boundary.
-
-(Extracted from Mentci/AUDIT-REPORT.md before that file was
-deleted 2026-04-20.)
+Proper fix: keep the data in a .core file and load it at build time.
+Deferred; blocks on a mechanism for build-time data loading.
 
 ## VCS
 
-Jujutsu (`jj`) is mandatory. Always pass `-m`.
+Jujutsu (`jj`) mandatory. Always pass `-m`.
