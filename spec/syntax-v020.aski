@@ -672,6 +672,37 @@
 
 
 ;; =============================================================
+;; EXEC — own surface (see `.exec` files)
+;; =============================================================
+;;
+;; Executable programs live in `.exec` files. The exec surface
+;; is minimal (Root + Module dialects only) — everything else is
+;; referenced from the aski surface via `<:aski:Statement>`.
+;;
+;; An `.exec` file has three parts per exec/Root.synth:
+;;   #Module#( @ModuleName <Module> )               — module header + imports
+;;   *#Const#{| @ConstName <Type> @Literal |}        — optional consts
+;;   #Program#[ +<Statement> ]                       — program body (one or more
+;;                                                     statements from the aski
+;;                                                     Statement dialect)
+;;
+;; Example — hello.exec:
+;;
+;;   (Hello [Core Element] [Io StdOut])
+;;
+;;   [
+;;     (element Element:Fire)
+;;     [StdOut:print(element.describe)]
+;;   ]
+;;
+;; The `(element Element:Fire)` line is a LocalDecl BindExpr —
+;; declares local `element` bound to the `Fire` variant of
+;; `Element`. The `[StdOut:print(…)]` line is an ExprStmt — a
+;; side-effect call. The program body is a plain `[…]` block
+;; (not `[|…|]` — that's a loop); contents are Statements.
+
+
+;; =============================================================
 ;; RFI — own surface (see `.rfi` files)
 ;; =============================================================
 ;;

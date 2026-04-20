@@ -100,7 +100,8 @@ See spec/design.md §Origins.
 - `spec/synth.md` — synth grammar spec (with v0.19 additions)
 - `spec/architecture.md` — pipeline + surfaces
 - `spec/syntax-v020.aski` — current language reference examples (v0.20)
-  (syntax-v019.aski / syntax-v018.aski retained for historical reference)
+  (pre-v0.20 versions deleted 2026-04-20; git history preserves them
+  if needed for archaeology)
 
 ## Aski Language Family
 
