@@ -17,7 +17,7 @@ corec       — .core → Rust with rkyv derives (bootstrap seed tool)
 synth-core  — grammar .core + corec → Rust rkyv types (askicc↔askic contract)
 aski-core   — parse tree .core + corec → Rust rkyv types (askic↔veric↔semac contract) + spec docs
 veri-core   — verified-program .core + corec → Rust rkyv types (veric↔semac contract)
-askicc      — source/<surface>/*.synth → dsls.rkyv (domain-data-tree, all 4 DSLs combined, embedded in askic)
+askicc      — source/<surface>/*.synth → dsls.rkyv (domain-data-tree, all 5 DSLs combined, embedded in askic)
 askic       — .aski source + dsls.rkyv → per-module rkyv (aski-core types)
 veric       — per-module rkyv + cross-module linking → program.rkyv (veri-core types)
 domainc     — program.rkyv → Rust domain types (proc macro, compile-time)
@@ -44,14 +44,15 @@ projections from `.sema`). Everything else is rkyv-typed-data in,
 rkyv-typed-data out.
 
 
-## Four Surfaces (v0.19)
+## Five Surfaces (v0.20)
 
-aski has four DSLs, one per file type:
+aski has five DSLs, one per file type:
 
 - `.core` — pure type definitions (for corec)
-- `.core` — modules and libraries (for askic)
+- `.aski` — modules and libraries (for askic)
 - `.synth` — grammar self-description (for tooling)
 - `.exec` — executable programs (for askic)
+- `.rfi` — Rust foreign interface declarations (v0.20, for askic)
 
 Each DSL is a set of **dialects** — one .synth file per
 dialect (Body.synth, Statement.synth, Expr.synth, …). askicc
@@ -61,9 +62,10 @@ every DSL. Each Dialect entry carries its SurfaceKind.
 
 askic dispatches on file extension to pick the entry surface
 (`.core` → Core, `.aski` → Aski, `.synth` → Synth, `.exec`
-→ Exec), then walks dialects looked up by (SurfaceKind,
-DialectKind). Cross-surface refs (`<:surface:Name>` — e.g.,
-exec's `<:aski:Statement>`) resolve via the same flat table.
+→ Exec, `.rfi` → Rfi), then walks dialects looked up by
+(SurfaceKind, DialectKind). Cross-surface refs
+(`<:surface:Name>` — e.g., exec's `<:aski:Statement>`)
+resolve via the same flat table.
 
 The synth language in v0.18 has three orthogonal concepts:
 
@@ -524,7 +526,7 @@ Source of truth (currently incomplete — see aski-core CLAUDE.md):
 askicc reads .synth dialect files from each DSL's subdirectory,
 populates a domain-data-tree using synth-core's corec-generated
 types, and serializes it as a single `dsls.rkyv` containing all
-four DSLs. This rkyv data gets embedded in the askic binary at
+five DSLs. This rkyv data gets embedded in the askic binary at
 build time, giving askic the ability to read that version of
 aski's grammar. askic deserializes using the same corec-generated
 types. The tree itself is pure domain composition — every node
@@ -662,7 +664,7 @@ impls). `main` is the only exception.
 corec        .core → Rust with rkyv derives (bootstrap tool)
 synth-core   grammar .core + corec → rkyv types (askicc↔askic)
 aski-core    parse tree .core + corec → rkyv types (askic↔veric↔semac)
-askicc       source/<surface>/*.synth → rkyv dsls.rkyv (all 4 DSLs)
+askicc       source/<surface>/*.synth → rkyv dsls.rkyv (all 5 DSLs)
 askic        .core/.aski/.synth/.exec → per-module .rkyv (surface-dispatched)
 veric        per-module .rkyv → program.rkyv (verified, linked)
 domainc      program.rkyv → domain types (proc macro)

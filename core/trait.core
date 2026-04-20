@@ -13,7 +13,7 @@
 ;; NamedSignature retired — TraitDecl.Methods uses NamedMethod (same
 ;; as TraitImpl), with body optional to distinguish required from default.
 
-(Trait TraitDecl TraitImpl Method Signature NamedMethod AssociatedTypeBinding)
+(Trait TraitDecl TraitImpl AssociatedTypeBinding NamedMethod Method Signature)
 
 
 {TraitDecl

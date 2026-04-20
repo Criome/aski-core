@@ -50,8 +50,8 @@ eventually produces sema (via semac) + Rust + `.aski-table.sema`
 v0.19 changes carried over:
 - LocalDecl unified (5 nested variants).
 - Loop struct with required Condition (InfiniteLoop retired).
-- Type enum 5 variants (InstanceType retired).
-- Pattern.VariantAlt.
+- Type enum — 6 variants in v0.20 (InstanceType retired in v0.19; SelfAssoc added in v0.20).
+- Pattern — v0.20 has 5 variants: Wildcard (added 2026-04-19), VariantBind, VariantAlt, VariantMatch, StringMatch.
 - program.core (exec surface output).
 - Method.Body is `[Option [Box Body]]` — default trait methods.
 
@@ -99,7 +99,8 @@ See spec/design.md §Origins.
 - `spec/design.md` — language design + delimiter allocation
 - `spec/synth.md` — synth grammar spec (with v0.19 additions)
 - `spec/architecture.md` — pipeline + surfaces
-- `spec/syntax-v018.aski` — language reference examples
+- `spec/syntax-v020.aski` — current language reference examples (v0.20)
+  (syntax-v019.aski / syntax-v018.aski retained for historical reference)
 
 ## Aski Language Family
 

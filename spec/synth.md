@@ -64,9 +64,9 @@ works because the space is next to delimiters, not between
 items themselves.
 
 
-## Surfaces (v0.19)
+## Surfaces (v0.20)
 
-Synth is organized into four **surfaces**, each a dialect
+Synth is organized into five **surfaces**, each a dialect
 family with its own root rule and rkyv artifact. Each
 surface's `.synth` files live in their own subdirectory.
 
@@ -76,13 +76,15 @@ surface's `.synth` files live in their own subdirectory.
 | aski | Modules and libraries | askic | .aski |
 | synth | Grammar self-description | tooling | .synth |
 | exec | Executable programs | askic | .exec |
+| rfi | Rust foreign interface declarations | askic | .rfi |
 
 ```
 askicc/source/
   core/    — Root, Enum, Struct (no module header)
-  aski/    — full grammar (module, enums, traits, FFI, etc.)
+  aski/    — full grammar (module, enums, traits, trait impls, etc.)
   synth/   — synth describing synth (self-description)
   exec/    — Root + Module only (refs aski via <:aski:...>)
+  rfi/     — Root only (refs aski for Signature)
 ```
 
 askicc produces ONE combined rkyv containing every dialect
@@ -93,11 +95,11 @@ to pick which surface's Root to enter, then looks up
 dialect ref (same-surface or cross-surface).
 
 Terminology:
-- **DSL** — one of the four surfaces (core, aski, synth, exec).
+- **DSL** — one of the five surfaces (core, aski, synth, exec, rfi).
   Each is a complete grammar for one file type.
 - **Dialect** — one `.synth` file within a DSL (Body, Statement,
   Expr, …). Its filename becomes a DialectKind variant.
-- **dsls.rkyv** — the one rkyv bundling all four DSLs'
+- **dsls.rkyv** — the one rkyv bundling all five DSLs'
   dialects, surface-tagged for dispatch.
 
 
