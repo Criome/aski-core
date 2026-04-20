@@ -96,12 +96,25 @@ See spec/design.md §Origins.
 
 ## Key Files
 
+### Canonical language spec
 - `spec/design.md` — language design + delimiter allocation
 - `spec/synth.md` — synth grammar spec (with v0.19 additions)
 - `spec/architecture.md` — pipeline + surfaces
 - `spec/syntax-v020.aski` — current language reference examples (v0.20)
   (pre-v0.20 versions deleted 2026-04-20; git history preserves them
   if needed for archaeology)
+
+### Rust-gap analysis + bridge proposals (v0.20 → future)
+- `spec/gap-analysis.md` — catalog of Rust features aski doesn't yet
+  cover, with severity and spec-silent-vs-confirmed-OUT distinction.
+- `spec/bridge-proposals.md` — index of bridge-proposal docs.
+- `spec/bridge/paradigm.md` — **ground truth** on aski-Rust
+  relationship and spec-status levels (Landed / Proposed / Unspec'd /
+  Confirmed OUT). Read first.
+- `spec/bridge/clear.md` — items with clear resolution.
+- `spec/bridge/small-decisions.md` — items awaiting naming/sigil
+  decisions.
+- `spec/bridge/big-decisions.md` — items with open design.
 
 ## Aski Language Family
 
