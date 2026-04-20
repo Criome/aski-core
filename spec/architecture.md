@@ -673,3 +673,88 @@ rsc          .sema + domain types → .rs (Rust projection)
 askid        .sema + domain types + name table → .aski (canonical text)
 sema         Nix aggregator
 ```
+
+
+## Reference: Sema Binary Shape from v0.15 Prototype
+
+A v0.15 prototype of semac (archived 2026-04-16, deleted 2026-04-20
+after extraction) implemented a concrete sema binary representation
+worth documenting as reference for the current rewrite. These notes
+are PROPOSED shapes, not spec — they record a plausible starting
+point. Revisit when designing the v0.20 sema binary.
+
+### Ordinal-based names
+
+Each naming role (TypeName, VariantName, FieldName, TraitName,
+MethodName, ModuleName, StringLiteral, BindingName) became a
+newtype over `u32`. The u32 IS the discriminant in the binary.
+String values live outside sema, in a sidecar name table accessed
+through a `ResolveName` trait. This is what "no strings in sema"
+looks like concretely.
+
+### Flat sema structure
+
+```rust
+pub struct Sema {
+    pub types: Vec<SemaType>,
+    pub variants: Vec<SemaVariant>,
+    pub fields: Vec<SemaField>,
+    pub trait_decls: Vec<SemaTraitDecl>,
+    pub trait_impls: Vec<SemaTraitImpl>,
+    pub rfi_entries: Vec<SemaRfi>,     // was SemaFfi in v0.15
+    pub constants: Vec<SemaConst>,
+    pub modules: Vec<SemaModule>,
+    pub arena: ExprArena,
+}
+```
+
+Every entity is a typed struct with ordinal fields referring to other
+tables. No pointers. rkyv-trivial.
+
+### Flat expression arena
+
+All expressions, statements, bodies, and match arms live in parallel
+Vecs inside `ExprArena`, referenced via `ExprRef`/`StmtRef`/`BodyRef`
+newtypes. No `Box`, no recursion. Nested expressions hold arena
+indices instead of owned children.
+
+```rust
+pub struct ExprArena {
+    pub exprs: Vec<SemaExpr>,
+    pub stmts: Vec<SemaStatement>,
+    pub bodies: Vec<SemaBody>,
+    pub match_arms: Vec<SemaMatchArm>,
+}
+```
+
+This removes the need for `Box` anywhere in the serialized form
+while preserving recursive grammar (expressions still reference
+sub-expressions).
+
+### Name resolution sidecar
+
+```rust
+pub trait ResolveName {
+    fn type_name(&self, id: TypeName) -> &str;
+    fn variant_name(&self, id: VariantName) -> &str;
+    // ... per name kind
+}
+```
+
+Codegen and deparse consume `(Sema, &dyn ResolveName)`. The sema
+binary alone has no names; resolution is a separate step.
+
+### Rust projection model (future rsc)
+
+v0.15 codegen emitted name enums into a `pub mod names` sub-module
+first, then domain types, then trait decls, trait impls, constants.
+Each name kind became a `#[derive(..)] enum TypeName { Element,
+Quality, Point }` with a Display impl. Future `rsc` may adopt this
+shape.
+
+### Aski text reconstruction model (future askid)
+
+v0.15 deparse walked the pre-lowering parse tree and emitted aski
+source by matching on node constructors and delimiters. Future
+`askid` consumes sema + name table + aski-specific projection rules
+to reconstruct canonical text.

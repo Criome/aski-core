@@ -107,6 +107,26 @@ See spec/design.md §Origins.
 Synth, nexus, and future DSLs are all part of the aski family.
 Same principles: no newlines, delimiter-driven, position-derived.
 
+## Known Tensions
+
+### Primitive::all() is a hand-maintained Rust list
+
+`aski-core/src/lib.rs` exposes a hardcoded list of primitive types
+(U8–U64, I8–I64, F32, F64, Bool, String, Char, Vec, Option, Box,
+Result) directly in Rust source. design.md §No Hand-Maintained Lists
+says "every list of names, enum variants, or dispatch tables in
+source code is a bug" — the Primitive struct is generated from
+`.core`, but the actual *data* (which names are primitive, what
+arity each has) is hand-written in Rust.
+
+Proper fix: keep the data in a .core file (something like
+`core/primitive-data.core`) and load it at build time, the way
+askicc embeds dialect data. Deferred; blocks on a mechanism for
+build-time data loading across the aski-core / corec boundary.
+
+(Extracted from Mentci/AUDIT-REPORT.md before that file was
+deleted 2026-04-20.)
+
 ## VCS
 
 Jujutsu (`jj`) is mandatory. Always pass `-m`.
